@@ -1,0 +1,187 @@
+{
+ "fps": 24,
+ "frames": 420,
+ "events": [
+  {
+   "t": 2.708,
+   "frame": 66,
+   "kind": "whoosh",
+   "dur": 0.5,
+   "gain": 0.5,
+   "pitch": 0.6
+  },
+  {
+   "t": 2.875,
+   "frame": 70,
+   "kind": "twang"
+  },
+  {
+   "t": 2.875,
+   "frame": 70,
+   "kind": "whoosh",
+   "dur": 0.45
+  },
+  {
+   "t": 3.292,
+   "frame": 80,
+   "kind": "thud",
+   "gain": 0.35,
+   "pitch": 1.6
+  },
+  {
+   "t": 3.292,
+   "frame": 80,
+   "kind": "thud",
+   "gain": 0.6,
+   "pitch": 0.7
+  },
+  {
+   "t": 4.125,
+   "frame": 100,
+   "kind": "whoosh",
+   "dur": 0.4,
+   "gain": 0.4,
+   "pitch": 0.5
+  },
+  {
+   "t": 4.708,
+   "frame": 114,
+   "kind": "zap",
+   "dur": 0.45
+  },
+  {
+   "t": 4.75,
+   "frame": 115,
+   "kind": "thud",
+   "gain": 0.7,
+   "pitch": 1.0
+  },
+  {
+   "t": 6.375,
+   "frame": 154,
+   "kind": "twang"
+  },
+  {
+   "t": 6.375,
+   "frame": 154,
+   "kind": "whoosh",
+   "dur": 0.25
+  },
+  {
+   "t": 6.542,
+   "frame": 158,
+   "kind": "bonk"
+  },
+  {
+   "t": 7.708,
+   "frame": 186,
+   "kind": "thud",
+   "gain": 0.35,
+   "pitch": 0.6
+  },
+  {
+   "t": 8.042,
+   "frame": 194,
+   "kind": "thud",
+   "gain": 0.35,
+   "pitch": 0.6
+  },
+  {
+   "t": 8.375,
+   "frame": 202,
+   "kind": "thud",
+   "gain": 0.35,
+   "pitch": 0.6
+  },
+  {
+   "t": 8.792,
+   "frame": 212,
+   "kind": "whoosh",
+   "dur": 0.3,
+   "gain": 0.6,
+   "pitch": 0.7
+  },
+  {
+   "t": 8.875,
+   "frame": 214,
+   "kind": "whoosh",
+   "dur": 0.3,
+   "gain": 0.4,
+   "pitch": 1.4
+  },
+  {
+   "t": 9.0,
+   "frame": 217,
+   "kind": "whoosh",
+   "dur": 0.45,
+   "gain": 1.0,
+   "pitch": 1.2
+  },
+  {
+   "t": 9.375,
+   "frame": 226,
+   "kind": "thud",
+   "gain": 1.0,
+   "pitch": 0.55
+  },
+  {
+   "t": 10.125,
+   "frame": 244,
+   "kind": "twang"
+  },
+  {
+   "t": 10.208,
+   "frame": 246,
+   "kind": "bonk"
+  },
+  {
+   "t": 11.208,
+   "frame": 270,
+   "kind": "thud",
+   "gain": 0.25,
+   "pitch": 0.6
+  },
+  {
+   "t": 11.708,
+   "frame": 282,
+   "kind": "thud",
+   "gain": 0.25,
+   "pitch": 0.6
+  },
+  {
+   "t": 13.042,
+   "frame": 314,
+   "kind": "twang"
+  },
+  {
+   "t": 13.042,
+   "frame": 314,
+   "kind": "zap",
+   "dur": 0.2
+  },
+  {
+   "t": 13.125,
+   "frame": 316,
+   "kind": "boom"
+  },
+  {
+   "t": 13.5,
+   "frame": 325,
+   "kind": "thud",
+   "gain": 0.6,
+   "pitch": 0.8
+  },
+  {
+   "t": 13.625,
+   "frame": 328,
+   "kind": "thud",
+   "gain": 0.8,
+   "pitch": 0.55
+  },
+  {
+   "t": 15.375,
+   "frame": 370,
+   "kind": "chime"
+  }
+ ]
+}
