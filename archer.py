@@ -4,7 +4,8 @@ import random
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import (
     WindowProperties, Vec4, Vec3, DirectionalLight, 
-    AmbientLight, Spotlight, PerspectiveLens, CardMaker, LineSegs
+    AmbientLight, Spotlight, PerspectiveLens, CardMaker, LineSegs,
+    ClockObject
 )
 from direct.actor.Actor import Actor
 from direct.gui.DirectGui import DirectButton, DirectLabel
@@ -44,6 +45,9 @@ class PandarenRPGAdventure(ShowBase):
         self.is_saiyan_active = False
         self.is_jumping = False
         self.jump_time = 0.0
+        self.pre_jump_heading = 0.0
+        self.kick_hit_done = False
+        self.clock = ClockObject.getGlobalClock()
         
         # RPG Player Progress Systems
         self.player_max_hp = 100.0
@@ -61,6 +65,7 @@ class PandarenRPGAdventure(ShowBase):
         self.accept("mouse1-up", self.stop_drag)
         self.accept("space", self.trigger_jump_kick) 
         self.accept("l", self.shoot_lightning_bolt)   
+        self.accept("k", self.toggle_super_saiyan)
         
         self.accept("w", self.set_key, ["w", 1])
         self.accept("w-up", self.set_key, ["w", 0])
@@ -87,7 +92,13 @@ class PandarenRPGAdventure(ShowBase):
             self.hero.loop("walk")
         except Exception as e:
             print(f"Asset load issue: {e}")
+            # Visible stand-in so the game still runs (plain NodePath: no loop())
             self.hero = self.render.attachNewNode("FallbackNode")
+            stand_in = self.loader.loadModel("models/misc/sphere")
+            stand_in.reparentTo(self.hero)
+            stand_in.setScale(1.5)
+            stand_in.setZ(1.5)
+            self.hero.setPos(0, 0, self.base_z_pos)
 
         # 4. Built-in Geometric Paths (Stone Walkway Floor Tracks)
         self.path_blocks = []
@@ -121,6 +132,8 @@ class PandarenRPGAdventure(ShowBase):
             part.setBillboardPointEye() 
             part.setTransparency(True)
             part.setColor(Vec4(1, 0.9, 0, 0.0)) 
+            part.setLightOff()
+            part.hide()
             self.aura_particles.append(part)
 
         # 7. Cinematic 3-Point Game Studio Lighting Rig
@@ -186,14 +199,15 @@ class PandarenRPGAdventure(ShowBase):
             cam_x += random.uniform(-self.shake_intensity, self.shake_intensity)
             cam_z += random.uniform(-self.shake_intensity, self.shake_intensity)
         self.camera.setPos(cam_x, cam_y, cam_z)
-        self.stage_pivot.setHpr(self.camera_heading, self.camera_pitch, 0)
+        # Negative pitch tilts the boom down so the camera sits above the ground
+        self.stage_pivot.setHpr(self.camera_heading, -self.camera_pitch, 0)
 
     def orbit_camera_task(self, task):
         if hasattr(self, 'hero') and self.hero:
             self.stage_pivot.setPos(self.hero.getPos())
 
         if not self.is_dragging:
-            self.camera_heading += 6.0 * globalClock.getDt()
+            self.camera_heading += 6.0 * self.clock.getDt()
             self.update_camera_position()
         elif self.mouseWatcherNode.hasMouse():
             curr_x = self.mouseWatcherNode.getMouseX()
@@ -212,17 +226,40 @@ class PandarenRPGAdventure(ShowBase):
         if self.is_saiyan_active:
             self.hero.setColorScale(Vec4(1.5, 1.3, 0.2, 1.0))
             self.spot.setColor(Vec4(2.0, 1.8, 0.0, 1.0))
+            for part in self.aura_particles:
+                part.setColor(Vec4(1, 1, 0, 0))
+                part.show()
             print("🔥 SUPER SAIYAN MODE ACTIVATED! 🔥")
         else:
             self.hero.clearColorScale()
             self.spot.setColor(Vec4(0.95, 0.9, 0.85, 1))
             for part in self.aura_particles:
                 part.setColor(Vec4(1, 1, 0, 0))
+                part.hide()
 
     def trigger_jump_kick(self):
         if not self.is_jumping:
             self.is_jumping = True
             self.jump_time = 0.0
+            self.pre_jump_heading = self.hero.getH()
+            self.kick_hit_done = False
+
+    def damage_monster(self, monster, dmg):
+        """Applies damage and handles the kill + XP reward."""
+        monster["hp"] = max(0.0, monster["hp"] - dmg)
+        if monster["hp"] <= 0 and monster in self.active_monsters:
+            print("💀 MONSTER SLAYED! +25 Experience Points yielded!")
+            monster["node"].removeNode()
+            self.active_monsters.remove(monster)
+
+            # Gain Experience processing metrics
+            self.player_xp += 25
+            if self.player_xp >= self.xp_needed:
+                self.player_level += 1
+                self.player_xp = 0
+                self.player_hp = self.player_max_hp # Heal completely
+                self.level_up_alert_timer = 2.0 
+                print(f"👑 LEVEL UP! Level {self.player_level}! 👑")
 
     def shoot_lightning_bolt(self):
         if len(self.active_monsters) == 0:
@@ -263,7 +300,7 @@ class PandarenRPGAdventure(ShowBase):
             if k < segments:
                 mid_pos.setX(mid_pos.getX() + random.uniform(-1.5, 1.5))
                 mid_pos.setZ(mid_pos.getZ() + random.uniform(-1.0, 1.0))
-                segs.drawTo(mid_pos)
+            segs.drawTo(mid_pos)  # last step lands exactly on end_point
 
         geom_node = segs.create()
         self.lightning_line_node = self.render.attachNewNode(geom_node)
@@ -275,27 +312,13 @@ class PandarenRPGAdventure(ShowBase):
         # Check range constraints context to register damages
         if min_dist < 22.0:
             dmg = 30.0 if not self.is_saiyan_active else 60.0
-            closest_monster["hp"] = max(0.0, closest_monster["hp"] - dmg)
             print(f"⚡ BLAST HIT! Monster lost {dmg} HP!")
-            
-            if closest_monster["hp"] <= 0:
-                print("💀 MONSTER SLAYED! +25 Experience Points yielded!")
-                closest_monster["node"].removeNode()
-                self.active_monsters.remove(closest_monster)
-                
-                # Gain Experience processing metrics
-                self.player_xp += 25
-                if self.player_xp >= self.xp_needed:
-                    self.player_level += 1
-                    self.player_xp = 0
-                    self.player_hp = self.player_max_hp # Heal completely
-                    self.level_up_alert_timer = 2.0 
-                    print(f"👑 LEVEL UP! Level {self.player_level}! 👑")
+            self.damage_monster(closest_monster, dmg)
         else:
             print(f"💨 Missed! Target too far ({min_dist:.1f} units).")
 
     def combat_physics_engine(self, task):
-        dt = globalClock.getDt()
+        dt = self.clock.getDt()
 
         # A. WASD Movement Engine Physics Translation Pipeline
         speed = 14.0
@@ -311,14 +334,19 @@ class PandarenRPGAdventure(ShowBase):
                 self.hero.getY() + move_y, 
                 self.hero.getZ()
             )
-            angle = math.atan2(-move_x, move_y) * (180.0 / math.pi)
-            self.hero.setH(angle)
+            # Stock panda model faces -Y, so add 180 to face the run direction
+            angle = math.atan2(-move_x, move_y) * (180.0 / math.pi) + 180.0
+            if self.is_jumping:
+                self.pre_jump_heading = angle  # applied on landing
+            else:
+                self.hero.setH(angle)
 
         # B. MULTIPLE ENEMY TRACKING AI SWARM
         h_pos = self.hero.getPos()
         for monster in self.active_monsters:
             e_pos = monster["node"].getPos()
             direction = h_pos - e_pos
+            direction.setZ(0)  # chase along the ground, don't sink/float
             distance = direction.length()
             
             if distance > 2.2:
@@ -328,9 +356,9 @@ class PandarenRPGAdventure(ShowBase):
                 monster["node"].lookAt(self.hero)
                 monster["node"].setH(monster["node"].getH() + 180) 
             else:
-                # Attack loops damage metrics continuous
+                # Each adjacent golem lands ~1.2 hits per second (5 HP each)
                 if random.random() < dt * 1.2:
-                    self.player_hp = max(0.0, self.player_hp - 5.0 * dt * 10)
+                    self.player_hp = max(0.0, self.player_hp - 5.0)
                     if self.player_hp <= 0:
                         print("💀 YOU DIED! Resurrecting at path...")
                         self.player_hp = self.player_max_hp
@@ -417,22 +445,33 @@ class PandarenRPGAdventure(ShowBase):
                 (self.jump_time * 8.0) - (4.9 * self.jump_time * self.jump_time)
             )
             self.hero.setH(self.hero.getH() + dt * 720.0)
+            # Spin kick hits every golem in reach once per jump
+            if not self.kick_hit_done and self.jump_time > 0.4:
+                self.kick_hit_done = True
+                k_pos = self.hero.getPos()
+                for monster in list(self.active_monsters):
+                    gap = monster["node"].getPos() - k_pos
+                    gap.setZ(0)
+                    if gap.length() < 5.0:
+                        print("🥋 SPIN KICK HIT! Monster lost 20 HP!")
+                        self.damage_monster(monster, 20.0)
             if vertical_arc >= 0.0:
                 self.hero.setZ(self.base_z_pos + vertical_arc)
             else:
                 self.is_jumping = False
                 self.hero.setZ(self.base_z_pos)
-                self.hero.setH(0)
+                self.hero.setH(self.pre_jump_heading)
 
         return task.cont
 
     def setup_ui(self):
         t_header = "PANDAREN RPG HORIZON ENGINE"
-        t_saiyan = "GO SUPER SAIYAN (Toggle Aura)"
+        t_saiyan = "GO SUPER SAIYAN (K Key)"
         t_bolt = "SHOOT LIGHTNING BOLT (L Key)"
         t_respawn = "RESPAWN MONSTER WAVE"
         t_footer = (
-            "WASD: Run Along Path Track | L Key: Blast Target | Space: Spin Kick"
+            "WASD: Run Along Path Track | L Key: Blast Target | "
+            "Space: Spin Kick | K Key: Super Saiyan"
         )
 
         c_bg = (0.02, 0.02, 0.05, 0.9)
@@ -492,5 +531,6 @@ class PandarenRPGAdventure(ShowBase):
         self.ui_level_flash.hide() 
 
 # Global boot configurations (Ensure class names match exactly)
-app = PandarenRPGAdventure()
-app.run()
+if __name__ == "__main__":
+    app = PandarenRPGAdventure()
+    app.run()
