@@ -1,0 +1,6 @@
+loot 216
+mount 176
+ride 200 still
+city 190
+establish 120
+ride1 84

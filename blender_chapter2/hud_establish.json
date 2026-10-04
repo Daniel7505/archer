@@ -1,0 +1,25 @@
+{
+ "mode": "establish",
+ "frames": 120,
+ "fps": 24,
+ "hits": [],
+ "events": [
+  {
+   "t": 0.0,
+   "frame": 1,
+   "kind": "city",
+   "dur": 5.0
+  },
+  {
+   "t": 1.208,
+   "frame": 30,
+   "kind": "fanfare"
+  }
+ ],
+ "title": {
+  "text": "ALDERMOOR",
+  "sub": "the White City by the River",
+  "f0": 28,
+  "f1": 110
+ }
+}

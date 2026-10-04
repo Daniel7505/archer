@@ -1,0 +1,68 @@
+{
+ "mode": "montage",
+ "frames": 468,
+ "fps": 24,
+ "events": [
+  {
+   "frame": 4,
+   "kind": "ui_open"
+  },
+  {
+   "frame": 22,
+   "kind": "ui_click"
+  },
+  {
+   "frame": 40,
+   "kind": "stamp"
+  },
+  {
+   "frame": 46,
+   "kind": "coins",
+   "dur": 1.3
+  },
+  {
+   "frame": 112,
+   "kind": "ui_open"
+  },
+  {
+   "frame": 130,
+   "kind": "ui_click"
+  },
+  {
+   "frame": 148,
+   "kind": "stamp"
+  },
+  {
+   "frame": 154,
+   "kind": "coins",
+   "dur": 1.3
+  },
+  {
+   "frame": 220,
+   "kind": "ui_open"
+  },
+  {
+   "frame": 238,
+   "kind": "ui_click"
+  },
+  {
+   "frame": 256,
+   "kind": "sparkle"
+  },
+  {
+   "frame": 325,
+   "kind": "bells"
+  },
+  {
+   "frame": 404,
+   "kind": "chime"
+  }
+ ],
+ "gold_final": 56,
+ "melody": {
+  "file": "melody2.wav",
+  "f0": 314,
+  "f1": 468,
+  "gain": 0.45
+ }
+}

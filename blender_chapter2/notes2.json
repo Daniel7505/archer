@@ -1,0 +1,172 @@
+{
+ "bpm": 132,
+ "total_seconds": 7.9364,
+ "fps": 24,
+ "lead_in": 0.8,
+ "scale_for_fingering": [
+  "D5",
+  "E5",
+  "F#5",
+  "G#5",
+  "A5",
+  "B5",
+  "C#6",
+  "D6",
+  "E6"
+ ],
+ "fingering_rule": "index k = number of fingers lifted, in order FINGER_LIFT_ORDER",
+ "notes": [
+  {
+   "start": 0.8,
+   "duration": 0.2273,
+   "pitch": "D5",
+   "midi": 74,
+   "freq": 587.33,
+   "fingering_index": 0
+  },
+  {
+   "start": 1.0273,
+   "duration": 0.2273,
+   "pitch": "F#5",
+   "midi": 78,
+   "freq": 739.989,
+   "fingering_index": 2
+  },
+  {
+   "start": 1.2545,
+   "duration": 0.2273,
+   "pitch": "A5",
+   "midi": 81,
+   "freq": 880.0,
+   "fingering_index": 4
+  },
+  {
+   "start": 1.4818,
+   "duration": 0.4545,
+   "pitch": "D6",
+   "midi": 86,
+   "freq": 1174.659,
+   "fingering_index": 7
+  },
+  {
+   "start": 1.9364,
+   "duration": 0.2273,
+   "pitch": "C#6",
+   "midi": 85,
+   "freq": 1108.731,
+   "fingering_index": 6
+  },
+  {
+   "start": 2.1636,
+   "duration": 0.2273,
+   "pitch": "A5",
+   "midi": 81,
+   "freq": 880.0,
+   "fingering_index": 4
+  },
+  {
+   "start": 2.3909,
+   "duration": 0.4545,
+   "pitch": "B5",
+   "midi": 83,
+   "freq": 987.767,
+   "fingering_index": 5
+  },
+  {
+   "start": 2.8455,
+   "duration": 0.2273,
+   "pitch": "A5",
+   "midi": 81,
+   "freq": 880.0,
+   "fingering_index": 4
+  },
+  {
+   "start": 3.0727,
+   "duration": 0.2273,
+   "pitch": "F#5",
+   "midi": 78,
+   "freq": 739.989,
+   "fingering_index": 2
+  },
+  {
+   "start": 3.3,
+   "duration": 0.2273,
+   "pitch": "E5",
+   "midi": 76,
+   "freq": 659.255,
+   "fingering_index": 1
+  },
+  {
+   "start": 3.5273,
+   "duration": 0.2273,
+   "pitch": "F#5",
+   "midi": 78,
+   "freq": 739.989,
+   "fingering_index": 2
+  },
+  {
+   "start": 3.7545,
+   "duration": 0.6818,
+   "pitch": "A5",
+   "midi": 81,
+   "freq": 880.0,
+   "fingering_index": 4
+  },
+  {
+   "start": 4.4364,
+   "duration": 0.2273,
+   "pitch": "B5",
+   "midi": 83,
+   "freq": 987.767,
+   "fingering_index": 5
+  },
+  {
+   "start": 4.6636,
+   "duration": 0.2273,
+   "pitch": "C#6",
+   "midi": 85,
+   "freq": 1108.731,
+   "fingering_index": 6
+  },
+  {
+   "start": 4.8909,
+   "duration": 0.2273,
+   "pitch": "D6",
+   "midi": 86,
+   "freq": 1174.659,
+   "fingering_index": 7
+  },
+  {
+   "start": 5.1182,
+   "duration": 0.4545,
+   "pitch": "E6",
+   "midi": 88,
+   "freq": 1318.51,
+   "fingering_index": 8
+  },
+  {
+   "start": 5.5727,
+   "duration": 0.2273,
+   "pitch": "D6",
+   "midi": 86,
+   "freq": 1174.659,
+   "fingering_index": 7
+  },
+  {
+   "start": 5.8,
+   "duration": 0.2273,
+   "pitch": "B5",
+   "midi": 83,
+   "freq": 987.767,
+   "fingering_index": 5
+  },
+  {
+   "start": 6.0273,
+   "duration": 0.9091,
+   "pitch": "A5",
+   "midi": 81,
+   "freq": 880.0,
+   "fingering_index": 4
+  }
+ ]
+}

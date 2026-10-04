@@ -1,0 +1,38 @@
+{
+ "mode": "mount",
+ "frames": 176,
+ "fps": 24,
+ "hits": [],
+ "events": [
+  {
+   "t": 2.708,
+   "frame": 66,
+   "kind": "shimmer",
+   "dur": 2.4
+  },
+  {
+   "t": 4.875,
+   "frame": 118,
+   "kind": "chime"
+  },
+  {
+   "t": 4.958,
+   "frame": 120,
+   "kind": "whoosh",
+   "dur": 0.6,
+   "gain": 0.5,
+   "pitch": 0.8
+  },
+  {
+   "t": 6.208,
+   "frame": 150,
+   "kind": "roar",
+   "gain": 0.5
+  }
+ ],
+ "melody": {
+  "file": "melody2.wav",
+  "f0": 1,
+  "f1": 172
+ }
+}

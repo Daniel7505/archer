@@ -1,0 +1,30 @@
+{
+ "segments": [
+  "loot",
+  "mount",
+  "ride",
+  "establish",
+  "city",
+  "montage"
+ ],
+ "durations": [
+  9.0,
+  7.333333,
+  9.625,
+  5.0,
+  8.208333,
+  19.5
+ ],
+ "starts": [
+  0,
+  8.6,
+  15.53,
+  24.76,
+  29.36,
+  37.17
+ ],
+ "crossfade": 0.4,
+ "chapter2": 56.708333,
+ "full_film_v2": 112.666667,
+ "chapter2_starts_in_full_film": 55.92
+}

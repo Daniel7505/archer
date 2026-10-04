@@ -1,0 +1,146 @@
+{
+ "mode": "loot",
+ "frames": 216,
+ "fps": 24,
+ "hits": [],
+ "events": [
+  {
+   "t": 0.0,
+   "frame": 1,
+   "kind": "stars",
+   "dur": 4.0
+  },
+  {
+   "t": 0.542,
+   "frame": 14,
+   "kind": "pop"
+  },
+  {
+   "t": 0.792,
+   "frame": 20,
+   "kind": "pop"
+  },
+  {
+   "t": 1.042,
+   "frame": 26,
+   "kind": "loot_land",
+   "rarity": "Rare"
+  },
+  {
+   "t": 1.042,
+   "frame": 26,
+   "kind": "pop"
+  },
+  {
+   "t": 1.292,
+   "frame": 32,
+   "kind": "loot_land",
+   "rarity": "Uncommon"
+  },
+  {
+   "t": 1.292,
+   "frame": 32,
+   "kind": "pop"
+  },
+  {
+   "t": 1.542,
+   "frame": 38,
+   "kind": "loot_land",
+   "rarity": "Epic"
+  },
+  {
+   "t": 1.792,
+   "frame": 44,
+   "kind": "loot_land",
+   "rarity": "Common"
+  },
+  {
+   "t": 2.292,
+   "frame": 56,
+   "kind": "step",
+   "gain": 0.35
+  },
+  {
+   "t": 2.792,
+   "frame": 68,
+   "kind": "step",
+   "gain": 0.35
+  },
+  {
+   "t": 3.292,
+   "frame": 80,
+   "kind": "step",
+   "gain": 0.35
+  },
+  {
+   "t": 3.792,
+   "frame": 92,
+   "kind": "step",
+   "gain": 0.35
+  },
+  {
+   "t": 4.292,
+   "frame": 104,
+   "kind": "step",
+   "gain": 0.35
+  },
+  {
+   "t": 5.292,
+   "frame": 128,
+   "kind": "pickup",
+   "rarity": "Rare"
+  },
+  {
+   "t": 6.042,
+   "frame": 146,
+   "kind": "pickup",
+   "rarity": "Uncommon"
+  },
+  {
+   "t": 6.792,
+   "frame": 164,
+   "kind": "pickup",
+   "rarity": "Epic"
+  },
+  {
+   "t": 7.542,
+   "frame": 182,
+   "kind": "pickup",
+   "rarity": "Common"
+  }
+ ],
+ "loot": [
+  {
+   "id": "buckle",
+   "name": "Gold-Coin Buckle",
+   "rarity": "Rare",
+   "drop": 14,
+   "land": 26,
+   "pick": 128
+  },
+  {
+   "id": "comb",
+   "name": "Moustache Comb",
+   "rarity": "Uncommon",
+   "drop": 20,
+   "land": 32,
+   "pick": 146
+  },
+  {
+   "id": "shard",
+   "name": "Mystery Shard",
+   "rarity": "Epic",
+   "drop": 26,
+   "land": 38,
+   "pick": 164
+  },
+  {
+   "id": "coins",
+   "name": "12 Gold Coins",
+   "rarity": "Common",
+   "drop": 32,
+   "land": 44,
+   "pick": 182
+  }
+ ]
+}

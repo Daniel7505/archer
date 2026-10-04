@@ -1,0 +1,59 @@
+2026-10-03 21:17:42 still city_0.png 4s
+2026-10-03 21:17:45 still city_1.png 3s
+2026-10-03 21:17:48 still city_2.png 3s
+2026-10-03 21:17:50 still city_3.png 3s
+2026-10-03 21:18:32 still city_0.png 3s
+2026-10-03 21:18:34 still city_1.png 3s
+2026-10-03 21:18:37 still city_2.png 2s
+2026-10-03 21:18:40 still city_3.png 3s
+2026-10-03 21:19:04 still city_0.png 3s
+2026-10-03 21:19:07 still city_1.png 3s
+2026-10-03 21:19:09 still city_2.png 2s
+2026-10-03 21:19:12 still city_3.png 3s
+2026-10-03 21:20:16 still ride_1.png 3s
+2026-10-03 21:20:19 still ride_4.png 2s
+2026-10-03 21:20:21 still ride_7.png 2s
+2026-10-03 21:20:23 still ride_10.png 2s
+2026-10-03 21:23:12 queue: start loot
+2026-10-03 21:23:14 loot render start 1-216 (have 0)
+2026-10-03 21:29:23 still hero_test.png 12s
+2026-10-03 21:29:55 still hero_test.png 12s
+2026-10-03 21:30:25 still hero_test.png 12s
+2026-10-03 21:31:55 still vendor_mira.png 6s
+2026-10-03 21:32:01 still vendor_tobin.png 6s
+2026-10-03 21:32:06 still vendor_seer.png 5s
+2026-10-03 21:32:14 still dusk_skyline.png 7s
+2026-10-03 21:33:17 still vendor_mira.png 6s
+2026-10-03 21:33:24 still vendor_tobin.png 7s
+2026-10-03 21:33:30 still vendor_seer.png 6s
+2026-10-03 21:33:35 still dusk_skyline.png 5s
+2026-10-03 21:34:40 still vendor_mira.png 31s
+2026-10-03 21:35:12 still vendor_tobin.png 32s
+2026-10-03 21:35:43 still vendor_seer.png 31s
+2026-10-03 21:36:21 still dusk_skyline.png 38s
+2026-10-03 21:41:52 STATE: queue running (loot->mount->ride+still->city->establish); stills, exports, hud montage, sfx, stitch script ready
+2026-10-03 21:54:52 loot render DONE 1-216 samples=6 1897s
+2026-10-03 21:54:52 queue: loot DONE (216 frames)
+2026-10-03 21:54:52 queue: start mount
+2026-10-03 21:54:55 mount render start 1-176 (have 0)
+2026-10-03 22:19:11 mount render DONE 1-176 samples=6 1456s
+2026-10-03 22:19:11 queue: mount DONE (176 frames)
+2026-10-03 22:19:11 queue: start ride
+2026-10-03 22:19:13 ride render start 1-231 (have 0)
+2026-10-03 22:22:21 post: comp_loot, comp_mount done
+2026-10-03 22:43:20 STATE: added ride1 (re-render ride frames 1-84, wider side framing) to queue
+2026-10-03 22:52:02 ride render DONE 1-231 samples=6 1969s
+2026-10-03 22:53:14 still hero_gate_arrival_1920x1080.png 72s
+2026-10-03 22:53:14 queue: ride DONE (231 frames)
+2026-10-03 22:53:14 queue: start city
+2026-10-03 22:53:16 city render start 1-197 (have 0)
+2026-10-03 23:20:50 city render DONE 1-197 samples=6 1654s
+2026-10-03 23:20:51 queue: city DONE (197 frames)
+2026-10-03 23:20:51 queue: start establish
+2026-10-03 23:20:52 establish render start 1-120 (have 0)
+2026-10-03 23:35:12 establish render DONE 1-120 samples=6 860s
+2026-10-03 23:35:12 queue: establish DONE (120 frames)
+2026-10-03 23:35:12 queue: start ride1
+2026-10-03 23:35:14 ride1 render start 1-84 (have 0)
+2026-10-03 23:47:45 ride1 render DONE 1-84 samples=6 750s
+2026-10-03 23:47:45 queue: ride1 DONE (84 frames)
