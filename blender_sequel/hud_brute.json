@@ -1,0 +1,277 @@
+{
+ "mode": "brute",
+ "frames": 264,
+ "fps": 24,
+ "hits": [
+  {
+   "frame": 121,
+   "world": [
+    1.2000000476837158,
+    16.0,
+    1.7954659461975098
+   ],
+   "id": "A6",
+   "text": null,
+   "kind": "dmg",
+   "target": "brute",
+   "x": 0.7342,
+   "y": 0.3041
+  },
+  {
+   "frame": 160,
+   "world": [
+    0.7200000286102295,
+    12.600000381469727,
+    1.7606720924377441
+   ],
+   "id": "BASH1",
+   "text": null,
+   "kind": "dmg",
+   "target": "archer",
+   "x": 0.4229,
+   "y": 0.3092
+  },
+  {
+   "frame": 196,
+   "world": [
+    0.8014055490493774,
+    13.172399520874023,
+    2.1323320865631104
+   ],
+   "id": "A7",
+   "text": null,
+   "kind": "dmg",
+   "target": "brute",
+   "x": 0.6028,
+   "y": 0.2442
+  },
+  {
+   "frame": 230,
+   "world": [
+    1.6575090885162354,
+    11.417351722717285,
+    1.7051806449890137
+   ],
+   "id": null,
+   "text": "DODGE!",
+   "kind": "miss",
+   "target": "archer",
+   "x": 0.512,
+   "y": 0.319
+  }
+ ],
+ "events": [
+  {
+   "t": 0.125,
+   "frame": 4,
+   "kind": "step",
+   "gain": 0.35
+  },
+  {
+   "t": 0.625,
+   "frame": 16,
+   "kind": "step",
+   "gain": 0.35
+  },
+  {
+   "t": 1.125,
+   "frame": 28,
+   "kind": "step",
+   "gain": 0.35
+  },
+  {
+   "t": 1.625,
+   "frame": 40,
+   "kind": "step",
+   "gain": 0.35
+  },
+  {
+   "t": 2.125,
+   "frame": 52,
+   "kind": "step",
+   "gain": 0.35
+  },
+  {
+   "t": 2.625,
+   "frame": 64,
+   "kind": "step",
+   "gain": 0.35
+  },
+  {
+   "t": 3.125,
+   "frame": 76,
+   "kind": "step",
+   "gain": 0.7,
+   "pitch": 0.6
+  },
+  {
+   "t": 3.625,
+   "frame": 88,
+   "kind": "step",
+   "gain": 0.7,
+   "pitch": 0.6
+  },
+  {
+   "t": 4.125,
+   "frame": 100,
+   "kind": "step",
+   "gain": 0.7,
+   "pitch": 0.6
+  },
+  {
+   "t": 4.292,
+   "frame": 104,
+   "kind": "greed"
+  },
+  {
+   "t": 4.875,
+   "frame": 118,
+   "kind": "twang"
+  },
+  {
+   "t": 4.875,
+   "frame": 118,
+   "kind": "whoosh",
+   "dur": 0.25
+  },
+  {
+   "t": 5.0,
+   "frame": 121,
+   "kind": "bonk"
+  },
+  {
+   "t": 5.958,
+   "frame": 144,
+   "kind": "step",
+   "gain": 0.9,
+   "pitch": 0.5
+  },
+  {
+   "t": 6.167,
+   "frame": 149,
+   "kind": "whoosh",
+   "dur": 0.4,
+   "gain": 0.8,
+   "pitch": 0.5
+  },
+  {
+   "t": 6.292,
+   "frame": 152,
+   "kind": "step",
+   "gain": 0.9,
+   "pitch": 0.5
+  },
+  {
+   "t": 6.458,
+   "frame": 156,
+   "kind": "step",
+   "gain": 0.9,
+   "pitch": 0.5
+  },
+  {
+   "t": 6.625,
+   "frame": 160,
+   "kind": "bash"
+  },
+  {
+   "t": 6.625,
+   "frame": 160,
+   "kind": "crush"
+  },
+  {
+   "t": 7.042,
+   "frame": 170,
+   "kind": "thud",
+   "gain": 0.7,
+   "pitch": 0.7
+  },
+  {
+   "t": 8.042,
+   "frame": 194,
+   "kind": "twang"
+  },
+  {
+   "t": 8.042,
+   "frame": 194,
+   "kind": "whoosh",
+   "dur": 0.25
+  },
+  {
+   "t": 8.125,
+   "frame": 196,
+   "kind": "bonk"
+  },
+  {
+   "t": 8.125,
+   "frame": 196,
+   "kind": "crit"
+  },
+  {
+   "t": 8.958,
+   "frame": 216,
+   "kind": "step",
+   "gain": 0.9,
+   "pitch": 0.5
+  },
+  {
+   "t": 9.167,
+   "frame": 221,
+   "kind": "whoosh",
+   "dur": 0.5,
+   "gain": 0.9,
+   "pitch": 0.45
+  },
+  {
+   "t": 9.292,
+   "frame": 224,
+   "kind": "step",
+   "gain": 0.9,
+   "pitch": 0.5
+  },
+  {
+   "t": 9.292,
+   "frame": 224,
+   "kind": "whoosh",
+   "dur": 0.3,
+   "gain": 0.5,
+   "pitch": 1.4
+  },
+  {
+   "t": 9.458,
+   "frame": 228,
+   "kind": "step",
+   "gain": 0.9,
+   "pitch": 0.5
+  },
+  {
+   "t": 9.958,
+   "frame": 240,
+   "kind": "thud",
+   "gain": 0.9,
+   "pitch": 0.5
+  },
+  {
+   "t": 10.208,
+   "frame": 246,
+   "kind": "step",
+   "gain": 0.7,
+   "pitch": 0.5
+  }
+ ],
+ "card": {
+  "text": "GRUBBO THE GREEDY",
+  "sub": "loves gold, hates sharing",
+  "f0": 86,
+  "f1": 134
+ },
+ "archer_end": [
+  1.8185186386108398,
+  11.081528663635254,
+  0.01534271240234375
+ ],
+ "brute_end": [
+  0.5050724744796753,
+  10.004561424255371,
+  -0.06049346923828125
+ ]
+}

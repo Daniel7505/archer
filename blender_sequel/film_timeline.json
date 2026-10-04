@@ -1,0 +1,25 @@
+{
+ "segments": [
+  "intro",
+  "fight",
+  "capture",
+  "brute",
+  "summon"
+ ],
+ "durations": [
+  15.0,
+  17.5,
+  5.0,
+  11.0,
+  10.0
+ ],
+ "starts": [
+  0,
+  14.6,
+  31.7,
+  36.3,
+  46.9
+ ],
+ "crossfade": 0.4,
+ "total": 56.916667
+}

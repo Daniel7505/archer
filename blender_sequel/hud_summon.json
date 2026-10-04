@@ -1,0 +1,234 @@
+{
+ "mode": "summon",
+ "frames": 240,
+ "fps": 24,
+ "hits": [
+  {
+   "frame": 153,
+   "world": [
+    1.3630354404449463,
+    17.154834747314453,
+    1.545651912689209
+   ],
+   "id": "B1",
+   "text": null,
+   "kind": "dmg",
+   "target": "brute",
+   "x": 0.8027,
+   "y": 0.2682
+  },
+  {
+   "frame": 158,
+   "world": [
+    1.3468530178070068,
+    16.938148498535156,
+    2.339637517929077
+   ],
+   "id": "B2",
+   "text": null,
+   "kind": "dmg",
+   "target": "brute",
+   "x": 0.7734,
+   "y": -0.0215
+  },
+  {
+   "frame": 163,
+   "world": [
+    1.349056363105774,
+    17.055816650390625,
+    1.9603466987609863
+   ],
+   "id": "B3",
+   "text": null,
+   "kind": "dmg",
+   "target": "brute",
+   "x": 0.7852,
+   "y": 0.116
+  },
+  {
+   "frame": 176,
+   "world": [
+    1.5537056922912598,
+    15.873464584350586,
+    1.0799543857574463
+   ],
+   "id": null,
+   "text": "K.O.!",
+   "kind": "ko",
+   "target": "brute",
+   "x": 0.5513,
+   "y": 0.4316
+  }
+ ],
+ "events": [
+  {
+   "t": 0.208,
+   "frame": 6,
+   "kind": "step",
+   "gain": 0.6,
+   "pitch": 0.55
+  },
+  {
+   "t": 0.708,
+   "frame": 18,
+   "kind": "step",
+   "gain": 0.6,
+   "pitch": 0.55
+  },
+  {
+   "t": 1.208,
+   "frame": 30,
+   "kind": "step",
+   "gain": 0.6,
+   "pitch": 0.55
+  },
+  {
+   "t": 1.875,
+   "frame": 46,
+   "kind": "shimmer",
+   "dur": 2.4
+  },
+  {
+   "t": 4.042,
+   "frame": 98,
+   "kind": "chime"
+  },
+  {
+   "t": 4.125,
+   "frame": 100,
+   "kind": "whoosh",
+   "dur": 0.6,
+   "gain": 0.5,
+   "pitch": 0.8
+  },
+  {
+   "t": 4.458,
+   "frame": 108,
+   "kind": "step",
+   "gain": 0.5,
+   "pitch": 0.8
+  },
+  {
+   "t": 4.75,
+   "frame": 115,
+   "kind": "step",
+   "gain": 0.5,
+   "pitch": 0.8
+  },
+  {
+   "t": 5.042,
+   "frame": 122,
+   "kind": "step",
+   "gain": 0.5,
+   "pitch": 0.8
+  },
+  {
+   "t": 5.333,
+   "frame": 129,
+   "kind": "step",
+   "gain": 0.5,
+   "pitch": 0.8
+  },
+  {
+   "t": 5.708,
+   "frame": 138,
+   "kind": "whoosh",
+   "dur": 0.4,
+   "gain": 0.5,
+   "pitch": 0.5
+  },
+  {
+   "t": 6.292,
+   "frame": 152,
+   "kind": "zap",
+   "dur": 0.35,
+   "gain": 0.9
+  },
+  {
+   "t": 6.333,
+   "frame": 153,
+   "kind": "thud",
+   "gain": 0.6,
+   "pitch": 1.1
+  },
+  {
+   "t": 6.333,
+   "frame": 153,
+   "kind": "crit"
+  },
+  {
+   "t": 6.5,
+   "frame": 157,
+   "kind": "zap",
+   "dur": 0.35,
+   "gain": 0.9
+  },
+  {
+   "t": 6.542,
+   "frame": 158,
+   "kind": "thud",
+   "gain": 0.6,
+   "pitch": 1.1
+  },
+  {
+   "t": 6.708,
+   "frame": 162,
+   "kind": "zap",
+   "dur": 0.35,
+   "gain": 0.9
+  },
+  {
+   "t": 6.75,
+   "frame": 163,
+   "kind": "thud",
+   "gain": 0.6,
+   "pitch": 1.1
+  },
+  {
+   "t": 6.75,
+   "frame": 163,
+   "kind": "crit"
+  },
+  {
+   "t": 7.042,
+   "frame": 170,
+   "kind": "thud",
+   "gain": 1.0,
+   "pitch": 0.45
+  },
+  {
+   "t": 7.208,
+   "frame": 174,
+   "kind": "boing"
+  },
+  {
+   "t": 7.25,
+   "frame": 175,
+   "kind": "thud",
+   "gain": 0.6,
+   "pitch": 0.6
+  },
+  {
+   "t": 7.458,
+   "frame": 180,
+   "kind": "stars",
+   "dur": 3.0
+  },
+  {
+   "t": 7.875,
+   "frame": 190,
+   "kind": "roar"
+  },
+  {
+   "t": 8.5,
+   "frame": 205,
+   "kind": "shimmer",
+   "dur": 1.4,
+   "gain": 0.5
+  }
+ ],
+ "melody": {
+  "f0": 1,
+  "f1": 178
+ }
+}

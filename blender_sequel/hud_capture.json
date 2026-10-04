@@ -1,0 +1,47 @@
+{
+ "mode": "capture",
+ "frames": 120,
+ "fps": 24,
+ "hits": [
+  {
+   "frame": 100,
+   "world": [
+    0.3806149959564209,
+    -3.034715175628662,
+    1.8391799926757812
+   ],
+   "id": null,
+   "text": "+40 HP  SPIRIT BOND",
+   "kind": "heal",
+   "target": "archer",
+   "x": 0.4553,
+   "y": 0.128
+  }
+ ],
+ "events": [
+  {
+   "t": 0.792,
+   "frame": 20,
+   "kind": "whoosh",
+   "dur": 0.8,
+   "gain": 0.25,
+   "pitch": 0.4
+  },
+  {
+   "t": 1.125,
+   "frame": 28,
+   "kind": "shimmer",
+   "dur": 2.8
+  },
+  {
+   "t": 4.0,
+   "frame": 97,
+   "kind": "chime"
+  },
+  {
+   "t": 4.125,
+   "frame": 100,
+   "kind": "heal"
+  }
+ ]
+}
