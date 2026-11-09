@@ -11,7 +11,7 @@ enum Mode { TITLE, PLAY, TALK, BOOK, BATTLE, LEVELUP, DEFEAT, ENDING }
 const INTRO := [
 	"Lina: You already settled the fight between you. The pack still holds Grubbo's buckle, his comb, some coins, and the Mystery Shard.",
 	"Lina: Mosswick corked the wicklights on the way. That is early trouble, not the whole road.",
-	"Lina: East of the meadow, white stone runs to Aldermoor. The city doors are shut. Seer Ilvane waits at the gate.",
+	"Lina: This yard is home. The first stop is close: Quill's stall, on the east road, this side of the grove.",
 	"Archer: We walk it together.",
 	"Panda: And we do not stand in the same red circle.",
 ]
@@ -326,7 +326,8 @@ func _talk_lina() -> void:
 	elif party.cleared.meadow:
 		lines.append("Lina: You came back. Lamb Hill and Pebble Creek are still there if the mites can wait.")
 	else:
-		lines.append("Lina: North first, if you like. The mites are loud, and the hill is not.")
+		lines.append("Lina: This yard is home. Come back when you need the breath.")
+	lines.append("Lina: Quill's stall is east, on the stone road, this side of the grove. That is the next talk.")
 	lines.append("Lina: Sit. Pears, tea, and a full breath.")
 	_say(lines, _do_rest)
 
@@ -342,15 +343,26 @@ func _on_npc(who: String) -> void:
 	if who == "quill":
 		_say([
 			"Peddler Quill: Berries, news, and no shards. I do not buy what came off Grubbo.",
-			"Peddler Quill: Ilvane at the white gate talks about seven cursed orbs. I have only met the road.",
+			"Peddler Quill: The next talk is Seer Ilvane, at the valley gate. White pillars, a blue door. You can see them from this road.",
+			"Peddler Quill: She will not take the shard. She will point you into the fields.",
 		], Callable())
 	elif who == "ilvane":
 		party.heard_orbs = true
 		_say([
 			"Ilvane: I am the seer. I will not take the Mystery Shard. It is not a coin.",
-			"Ilvane: There are seven cursed orbs. The shard is a whisper of one of them.",
-			"Ilvane: Keep it. The work is called Whispers of the Orb. This gate only opens the outer fields.",
-			"Ilvane: Aldermoor's walls are the long white line. The city doors stay shut. The spirit panda is for a road longer than today.",
+			"Ilvane: There are seven cursed orbs. The shard is a whisper of one of them. The work is called Whispers of the Orb.",
+			"Ilvane: This gate opens the outer fields. Stop at Briarwell, the blue roofs just off the road.",
+			"Ilvane: A warrior named Holt stands the road before Aldermoor's wall. The city doors stay shut.",
+		], Callable())
+	elif who == "briar":
+		_say([
+			"Neighbor: You found Briarwell. The next fire is Wayside Camp, still on the road, closer to the white wall.",
+			"Neighbor: Holt is the warrior. The ring is on the road ahead of that camp. Do not look for a city door.",
+		], Callable())
+	elif who == "wayside":
+		_say([
+			"Watcher: Holt is ahead of you, on the road, this side of the wall. The red ring marks the warrior.",
+			"Watcher: Walk up and you will see them. The doors behind them stay shut.",
 		], Callable())
 
 

@@ -22,6 +22,11 @@ var panda_prev := Vector3.ZERO
 var quill_pos := Vector3.ZERO
 var ilvane_pos := Vector3.ZERO
 var lina_pos := Vector3.ZERO
+var briar_pos := Vector3.ZERO
+var wayside_pos := Vector3.ZERO
+var holt_pos := Vector3.ZERO
+var briar_built := false
+var wayside_built := false
 var signs: Array = []
 var jars: Array = []
 var foes := {}
@@ -79,8 +84,7 @@ const FOE_TABLE := [
 
 
 func build() -> void:
-	lina_pos = _w(8.0, 28.0)
-	quill_pos = _w(102.0, -40.0)
+	quill_pos = _w(104.0, -30.0)
 	ilvane_pos = _w(150.0, -38.0)
 	_init_foliage()
 	_ground()
@@ -174,14 +178,20 @@ func region_name() -> String:
 		return ""
 	var raw := hero.global_position
 	if region_id() == "fields":
-		if raw.distance_to(Vector3(zone2_start.x + 900.0, raw.y, zone2_road_z)) < 80.0:
+		if briar_pos != Vector3.ZERO and raw.distance_to(briar_pos) < 70.0:
 			return "Briarwell"
+		if wayside_pos != Vector3.ZERO and raw.distance_to(wayside_pos) < 46.0:
+			return "Wayside Camp"
+		if holt_pos != Vector3.ZERO and raw.distance_to(holt_pos) < 55.0:
+			return "Holt's Road"
 		if raw.distance_to(Vector3(zone2_start.x + 1500.0, raw.y, zone2_road_z - 520.0)) < 90.0:
 			return "Ash Ridge"
 		if raw.x > zone2_end.x - 80.0:
 			return "Aldermoor Walls"
 		return "The Outer Fields"
 	var p := Vector3(raw.x / ZONE1_SCALE, 0, raw.z / ZONE1_SCALE)
+	if p.x > 98.0 and p.x < 112.0 and p.z > -40.0 and p.z < -22.0:
+		return "Quill's Stall"
 	if region_id() == "road":
 		if p.x > 146.0:
 			return "Aldermoor Gate"
@@ -274,7 +284,7 @@ func on_foe_beaten(foe_id: String) -> void:
 		return
 	var foe: Dictionary = foes[foe_id]
 	foe.defeated = true
-	if str(foe.battle) == "stair":
+	if str(foe.battle) == "stair" or str(foe.battle) == "holt":
 		foe.gone_for_good = true
 	var node: Node3D = foe.node
 	node.visible = false
@@ -293,6 +303,12 @@ func interact() -> void:
 		return
 	if _near_party(ilvane_pos, 2.8):
 		npc_talk.emit("ilvane")
+		return
+	if briar_pos != Vector3.ZERO and _near_party(briar_pos, 3.2):
+		npc_talk.emit("briar")
+		return
+	if wayside_pos != Vector3.ZERO and _near_party(wayside_pos, 3.2):
+		npc_talk.emit("wayside")
 		return
 	for sign in signs:
 		var s: Vector3 = sign.pos
@@ -417,8 +433,13 @@ func _spawn_foe(spec: Dictionary) -> void:
 	area.body_entered.connect(_on_foe_body.bind(foe_id))
 	if bool(spec.special):
 		var ring := Circle.new()
+		ring.name = "Mark"
 		root.add_child(ring)
-		var tint := Color(0.85, 0.45, 0.25, 0.35) if str(spec.battle) == "lurker" else Color(0.75, 0.55, 0.85, 0.4)
+		var tint := Color(0.75, 0.55, 0.85, 0.4)
+		if str(spec.battle) == "lurker":
+			tint = Color(0.85, 0.45, 0.25, 0.35)
+		elif str(spec.battle) == "holt":
+			tint = Color(0.78, 0.18, 0.14, 0.5)
 		ring.setup(tint)
 		ring.show_at(Vector3.ZERO, 2.1)
 	_adopt(root, root.position)
@@ -638,24 +659,50 @@ func _static_body(pos: Vector3, size: Vector3) -> StaticBody3D:
 
 
 func _dress_camp() -> void:
+	# A tight yard around the spawn, in world meters, so home reads as one place.
+	var yard := Vector3(0.0, 0.0, 30.0 * ZONE1_SCALE)
+	_adopt(_paint_box(Vector3(14.0, 0.08, 12.0), Color("c4a06a"), yard + Vector3(0, 0.06, 0)), yard)
+	lina_pos = yard + Vector3(3.2, 0.0, 0.6)
 	var lina := ActorVisual.new()
-	lina.position = Vector3(8, 0, 28)
-	_place_design(lina)
+	lina.position = lina_pos
+	_adopt(lina, lina_pos)
 	lina.configure("lina", "Lina")
-	_place_design(Props.cylinder(0.18, 0.5, Color("4a3424"), Vector3(-6.0, 0.25, 32.0)))
-	_place_design(Props.sphere(0.22, Color("ff8a3c"), Vector3(-6.0, 0.55, 32.0), 2.2))
+	var hearth := yard + Vector3(-2.4, 0.0, 1.8)
+	_adopt(Props.cylinder(0.7, 0.22, Color("6b5344"), hearth + Vector3(0, 0.12, 0)), hearth)
+	_adopt(Props.sphere(0.28, Color("ff8a3c"), hearth + Vector3(0, 0.42, 0), 2.2), hearth)
 	var fire := OmniLight3D.new()
-	fire.position = Vector3(-6.0, 0.9, 32.0)
+	fire.position = hearth + Vector3(0, 0.8, 0)
 	fire.light_color = Color("ffb060")
 	fire.light_energy = 1.4
 	fire.omni_range = 14.0
-	_place_design(fire)
-	_place_design(Props.box(Vector3(3.2, 1.45, 2.2), Color("8c3d3d"), Vector3(14.0, 0.75, 34.0)))
-	_jar(Vector3(-14.0, 0, 26.0))
-	# A quiet side yard. Still camp, still safe.
-	_place_design(Props.box(Vector3(2.4, 0.45, 0.5), Color("a07a48"), Vector3(18.0, 0.28, 22.0)))
-	_pickup("berry_yard", "berry", Vector3(18.0, 0, 18.5), "")
-	_sign(Vector3(16.0, 0, 20.0), "Yard", "Lina's drying yard. Nothing wanders here. The tea is the dangerous part, and only if you forget it.")
+	_adopt(fire, hearth)
+	var tent_at := yard + Vector3(5.4, 0.0, -1.2)
+	_adopt(_paint_box(Vector3(3.4, 1.6, 2.4), Color("8c3d3d"), tent_at + Vector3(0, 0.8, 0)), tent_at)
+	var bench := yard + Vector3(1.2, 0.0, -2.6)
+	_adopt(_paint_box(Vector3(1.8, 0.42, 0.55), Color("a07a48"), bench + Vector3(0, 0.28, 0)), bench)
+	var line_a := yard + Vector3(-1.2, 0.0, -2.2)
+	var line_b := yard + Vector3(-4.2, 0.0, -2.2)
+	_adopt(Props.cylinder(0.08, 2.2, Color("6b4a2e"), line_a + Vector3(0, 1.1, 0)), line_a)
+	_adopt(Props.cylinder(0.08, 2.2, Color("6b4a2e"), line_b + Vector3(0, 1.1, 0)), line_b)
+	var cloth := MeshInstance3D.new()
+	cloth.mesh = canopy_quad
+	cloth.scale = Vector3(0.55, 0.28, 0.55)
+	cloth.position = (line_a + line_b) * 0.5 + Vector3(0, 1.7, 0)
+	cloth.rotation.y = PI / 2.0
+	cloth.material_override = _flat_mat(Color("d4553a"))
+	cloth.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_adopt(cloth, cloth.position)
+	_jar(Vector3(yard.x / ZONE1_SCALE - 1.6, 0, yard.z / ZONE1_SCALE + 0.8))
+	_pickup("berry_yard", "berry", Vector3((yard.x - 3.6) / ZONE1_SCALE, 0, (yard.z - 1.2) / ZONE1_SCALE), "")
+	var home := Label3D.new()
+	home.text = "Bramblewick"
+	home.font_size = 52
+	home.pixel_size = 0.014
+	home.position = yard + Vector3(0, 3.4, 0)
+	home.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	home.modulate = Color("f3e2c2")
+	_adopt(home, home.position)
+	_sign_world(yard + Vector3(0, 0, 4.2), "Home", "Bramblewick Camp. Lina's yard is home. Nothing wanders here. Press F. She will point you to Quill's stall, east on the stone road.")
 
 
 func _dress_meadow() -> void:
@@ -707,9 +754,10 @@ func _dress_aldermoor_road() -> void:
 	_place_design(Props.cylinder(0.85, 6.5, Color("f7f4ee"), Vector3(156, 3.2, -32)))
 	_place_design(Props.box(Vector3(0.5, 2.2, 8.0), Color("c9a24a"), Vector3(156.4, 5.6, -41)))
 	_place_design(Props.box(Vector3(1.4, 3.6, 12.0), Color("23406e"), Vector3(156.8, 3.2, -41)))
+	_dress_quill_stall()
 	var quill := ActorVisual.new()
-	quill.position = Vector3(102, 0, -40)
-	_place_design(quill)
+	quill.position = quill_pos
+	_adopt(quill, quill_pos)
 	quill.configure("lina", "Quill")
 	var ilvane := ActorVisual.new()
 	ilvane.position = Vector3(150, 0, -38)
@@ -768,6 +816,30 @@ func _jar(pos: Vector3) -> void:
 	_adopt(body, body.position)
 
 
+func _dress_quill_stall() -> void:
+	var stall := quill_pos
+	_adopt(_paint_box(Vector3(4.2, 0.9, 1.4), Color("8a5a32"), stall + Vector3(-1.6, 0.45, -0.2)), stall)
+	var awning := MeshInstance3D.new()
+	awning.mesh = canopy_quad
+	awning.scale = Vector3(1.15, 0.42, 1.0)
+	awning.position = stall + Vector3(-1.4, 1.7, -0.2)
+	awning.rotation.x = -PI / 2.2
+	awning.material_override = _flat_mat(Color("2a4f86"))
+	awning.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_adopt(awning, awning.position)
+	_adopt(_paint_box(Vector3(0.7, 0.7, 0.7), Color("c4a574"), stall + Vector3(-3.2, 0.35, 0.8)), stall)
+	_adopt(_paint_box(Vector3(0.55, 0.5, 0.55), Color("6b4423"), stall + Vector3(-2.6, 0.9, 0.9)), stall)
+	var banner := Label3D.new()
+	banner.text = "Quill"
+	banner.font_size = 48
+	banner.pixel_size = 0.012
+	banner.position = stall + Vector3(0, 2.6, 0)
+	banner.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	banner.modulate = Color("f3e2c2")
+	_adopt(banner, banner.position)
+	_sign_world(stall + Vector3(2.2, 0, 1.4), "Stall", "Quill's stall. Berries and news. Press F. He sends you on to Seer Ilvane at the valley gate.")
+
+
 func _sign(pos: Vector3, short: String, full: String) -> void:
 	_place_design(Props.cylinder(0.1, 1.6, Color("6b4a2e"), pos + Vector3(0, 0.8, 0)))
 	var label := Label3D.new()
@@ -780,6 +852,20 @@ func _sign(pos: Vector3, short: String, full: String) -> void:
 	label.modulate = Color("f3e2c2")
 	_place_design(label)
 	signs.append({"pos": _w(pos.x, pos.z), "text": full})
+
+
+func _sign_world(pos: Vector3, short: String, full: String) -> void:
+	_adopt(Props.cylinder(0.1, 1.6, Color("6b4a2e"), pos + Vector3(0, 0.8, 0)), pos)
+	var label := Label3D.new()
+	label.text = short
+	label.font_size = 48
+	label.pixel_size = 0.012
+	label.position = pos + Vector3(0, 2.1, 0)
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.outline_size = 10
+	label.modulate = Color("f3e2c2")
+	_adopt(label, label.position)
+	signs.append({"pos": pos, "text": full})
 
 
 func _pickup(id: String, kind: String, pos: Vector3, note: String) -> void:
@@ -916,6 +1002,10 @@ func _blocks_crossing(x: float, z: float) -> bool:
 		return true
 	if absf(z + 41.0) < 8.0 and x > -58.0:
 		return true
+	if absf(x - 104.0) < 5.0 and absf(z + 30.0) < 5.0:
+		return true
+	if absf(x - 150.0) < 4.0 and absf(z + 38.0) < 4.0:
+		return true
 	return false
 
 
@@ -960,6 +1050,9 @@ func _register_outer_fields() -> void:
 	zone2_road_z = -41.0 * ZONE1_SCALE
 	zone2_start = Vector3(164.0 * ZONE1_SCALE, 0.0, zone2_road_z)
 	zone2_end = zone2_start + Vector3(ZONE2_LENGTH, 0.0, 0.0)
+	briar_pos = Vector3(zone2_start.x + 900.0, 0.0, zone2_road_z + 62.0)
+	wayside_pos = zone2_end + Vector3(-520.0, 0.0, 22.0)
+	holt_pos = zone2_end + Vector3(-190.0, 0.0, 6.0)
 	var x := zone2_start.x
 	while x < zone2_end.x + CHUNK:
 		var z := zone2_road_z - ZONE2_BREADTH * 0.5
@@ -1001,7 +1094,7 @@ func _build_fields_detail(chunk: Dictionary) -> void:
 	rng.seed = int(abs(key.x * 9176 + key.y * 131)) + 3
 	for i in rng.randi_range(12, 18):
 		var pos := origin + Vector3(rng.randf_range(-52, 52), 0, rng.randf_range(-52, 52))
-		if absf(pos.z - zone2_road_z) < 12.0:
+		if absf(pos.z - zone2_road_z) < 12.0 or _near_hub(pos, 16.0):
 			continue
 		_tree_world(pos, rng.randf() > 0.45)
 	for i in 12:
@@ -1011,14 +1104,21 @@ func _build_fields_detail(chunk: Dictionary) -> void:
 		_grass_world(tuft)
 	if absf(origin.z - zone2_road_z) < CHUNK:
 		chunk.detail.add_child(_paint_box(Vector3(CHUNK, 0.12, 14.0), Color("cbbfa6"), Vector3(origin.x, 0.06, zone2_road_z)))
-	var briar := Vector3(zone2_start.x + 900.0, 0, zone2_road_z + 70.0)
-	if origin.distance_to(briar) < 90.0:
-		_hamlet(chunk, briar)
+	if not briar_built and origin.distance_to(briar_pos) < 90.0:
+		briar_built = true
+		_hamlet(chunk, briar_pos)
+	if not wayside_built and origin.distance_to(wayside_pos) < 90.0:
+		wayside_built = true
+		_wayside(chunk, wayside_pos)
+	if _chunk_key(holt_pos) == key:
+		_mark_holt(chunk)
 	var ridge := Vector3(zone2_start.x + 1500.0, 0, zone2_road_z - 520.0)
 	if origin.distance_to(ridge) < 90.0:
 		_ridge(chunk, ridge)
 	if int(abs(key.x + key.y)) % 4 == 0 and absf(origin.z - zone2_road_z) > 40.0:
-		_spawn_field_foe(chunk, origin + Vector3(rng.randf_range(-20, 20), 0, rng.randf_range(-20, 20)))
+		var imp_at := origin + Vector3(rng.randf_range(-20, 20), 0, rng.randf_range(-20, 20))
+		if not _near_hub(imp_at, 24.0):
+			_spawn_field_foe(chunk, imp_at)
 
 
 func _hamlet(chunk: Dictionary, at: Vector3) -> void:
@@ -1040,9 +1140,89 @@ func _hamlet(chunk: Dictionary, at: Vector3) -> void:
 	label.position = at + Vector3(0, 6.0, 0)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	chunk.detail.add_child(label)
-	var post := Props.cylinder(0.12, 1.8, Color("6b4a2e"), at + Vector3(0, 0.9, 8))
-	chunk.detail.add_child(post)
-	signs.append({"pos": at + Vector3(0, 0, 8), "text": "Briarwell. The last roofs before Aldermoor's walls. The shard is still not for sale. Seven orbs, the seer said, and this is only the road."})
+	var hearth := at + Vector3(-6.0, 0.0, -6.0)
+	chunk.detail.add_child(Props.cylinder(0.6, 0.2, Color("6b5344"), hearth + Vector3(0, 0.12, 0)))
+	chunk.detail.add_child(Props.sphere(0.22, Color("ff8a3c"), hearth + Vector3(0, 0.36, 0), 1.6))
+	for bench_x in [-2.2, 2.4]:
+		chunk.detail.add_child(_paint_box(Vector3(1.6, 0.4, 0.5), Color("a07a48"), at + Vector3(bench_x, 0.28, -4.0)))
+	var neighbor := ActorVisual.new()
+	neighbor.position = briar_pos
+	chunk.detail.add_child(neighbor)
+	neighbor.configure("neighbor", "Neighbor")
+	_sign_world(at + Vector3(0, 0, 8), "Briarwell", "Briarwell. Blue roofs, one fire. Press F. The next stop is Wayside Camp, on the road, before the warrior and the shut wall.")
+
+
+func _wayside(chunk: Dictionary, at: Vector3) -> void:
+	chunk.detail.add_child(_paint_box(Vector3(3.6, 1.5, 2.6), Color("c4a574"), at + Vector3(-3.2, 0.75, 0)))
+	chunk.detail.add_child(_paint_box(Vector3(3.2, 1.3, 2.2), Color("8c3d3d"), at + Vector3(3.0, 0.65, 1.2)))
+	var solid_a := _static_body(at + Vector3(-3.2, 0.75, 0), Vector3(3.6, 1.5, 2.6))
+	var solid_b := _static_body(at + Vector3(3.0, 0.65, 1.2), Vector3(3.2, 1.3, 2.2))
+	chunk.detail.add_child(solid_a)
+	chunk.detail.add_child(solid_b)
+	_gather_shapes(solid_a, chunk)
+	_gather_shapes(solid_b, chunk)
+	chunk.detail.add_child(Props.cylinder(0.55, 0.18, Color("6b5344"), at + Vector3(0, 0.12, -2.4)))
+	chunk.detail.add_child(Props.sphere(0.2, Color("ff8a3c"), at + Vector3(0, 0.34, -2.4), 1.4))
+	var cloth := MeshInstance3D.new()
+	cloth.mesh = canopy_quad
+	cloth.scale = Vector3(0.7, 0.9, 0.7)
+	cloth.position = at + Vector3(0.2, 2.4, 1.6)
+	cloth.material_override = _flat_mat(Color("8c2f2f"))
+	cloth.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	chunk.detail.add_child(cloth)
+	var watcher := ActorVisual.new()
+	watcher.position = wayside_pos + Vector3(0.4, 0, -1.2)
+	chunk.detail.add_child(watcher)
+	watcher.configure("watcher", "Watcher")
+	var label := Label3D.new()
+	label.text = "Wayside"
+	label.font_size = 48
+	label.pixel_size = 0.014
+	label.position = at + Vector3(0, 3.2, 0)
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.modulate = Color("f3e2c2")
+	chunk.detail.add_child(label)
+	_sign_world(at + Vector3(0, 0, 4.5), "Wayside", "Wayside Camp. The last fire before the wall. Press F. Holt, the warrior, stands on the road ahead. The city doors stay shut.")
+
+
+func _mark_holt(chunk: Dictionary) -> void:
+	if foes.has("holt"):
+		return
+	var pole := holt_pos + Vector3(-4.5, 0, -2.0)
+	chunk.detail.add_child(Props.cylinder(0.12, 4.2, Color("f4f1ea"), pole + Vector3(0, 2.1, 0)))
+	var cloth := MeshInstance3D.new()
+	cloth.mesh = canopy_quad
+	cloth.scale = Vector3(0.55, 0.7, 0.55)
+	cloth.position = pole + Vector3(0.4, 3.4, 0)
+	cloth.material_override = _flat_mat(Color("8c2f2f"))
+	cloth.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	chunk.detail.add_child(cloth)
+	var pos := holt_pos
+	_spawn_foe({
+		"id": "holt",
+		"region": "fields",
+		"battle": "holt",
+		"kind": "warrior",
+		"name": "Holt",
+		"scale": 1.45,
+		"special": true,
+		"at": [pos.x / ZONE1_SCALE, pos.z / ZONE1_SCALE],
+		"patrol": [
+			[pos.x / ZONE1_SCALE, pos.z / ZONE1_SCALE],
+			[(pos.x + 8.0) / ZONE1_SCALE, (pos.z + 4.0) / ZONE1_SCALE],
+			[(pos.x - 6.0) / ZONE1_SCALE, (pos.z + 3.0) / ZONE1_SCALE],
+		],
+	})
+
+
+func _near_hub(pos: Vector3, radius: float) -> bool:
+	if briar_pos != Vector3.ZERO and pos.distance_to(briar_pos) < radius:
+		return true
+	if wayside_pos != Vector3.ZERO and pos.distance_to(wayside_pos) < radius:
+		return true
+	if holt_pos != Vector3.ZERO and pos.distance_to(holt_pos) < radius:
+		return true
+	return false
 
 
 func _ridge(chunk: Dictionary, at: Vector3) -> void:

@@ -780,6 +780,8 @@ func _plan_dest(f, step_r: float, attack: Dictionary) -> Vector3:
 		desired = 4.4
 	elif f.kind == "boss":
 		desired = 3.3 if str(attack.name) == "Jar Slam" else 5.0
+	elif f.kind == "warrior":
+		desired = 2.3
 	var dist := Rules.flat(f.pos, target.pos)
 	var dest: Vector3 = f.pos
 	if dist > desired + 0.3:

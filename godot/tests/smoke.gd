@@ -164,6 +164,7 @@ func _scene() -> bool:
 	ok = check(not game.overworld.is_chunk_awake_at_world(far_here), "the far fields start asleep") and ok
 	ok = check(game.overworld.awake_chunk_count() * 4 < game.overworld.chunk_count(), "most chunks are not simulated") and ok
 	ok = check(game.overworld.region_name() == "Bramblewick Camp", "camp is named") and ok
+	ok = check(game.overworld.hero.global_position.distance_to(game.overworld.lina_pos) < 8.0, "spawn stands in Lina's yard") and ok
 	ok = check(game.overworld.count_foes("camp") == 0, "camp has no wandering foes") and ok
 	ok = check(game.overworld.count_foes("meadow") >= 4, "the meadow has visible wanderers") and ok
 	ok = check(game.overworld.foe_visible("lurker") and game.overworld.foe_visible("mosswick"), "the lurker and Mosswick stand on the map") and ok
@@ -195,4 +196,72 @@ func _scene() -> bool:
 	game.battle.debug_cast("ember_shot", game.battle.fighter("mite_a").pos)
 	ok = check(game.battle.fighter("mite_a").hp < hp_before, "ember shot deals damage in the running scene") and ok
 	ok = check(int(game.party.elements.fire.xp) > 0 or int(game.party.elements.fire.level) > 1, "the scene party grew fire") and ok
+	game.debug_finish_battle()
+	for _step in 6:
+		await process_frame
+	game.overworld.place_world(game.overworld.lina_pos)
+	game.overworld.interact()
+	ok = check("Quill" in _said(game), "Lina points to Quill's stall") and ok
+	_close_talk(game)
+	game.overworld.place(Vector3(104, 0, -30))
+	ok = check(game.overworld.region_name() == "Quill's Stall", "Quill's stall is the near stop") and ok
+	game.overworld.interact()
+	ok = check("Ilvane" in _said(game), "Quill points to Ilvane at the gate") and ok
+	_close_talk(game)
+	game.overworld.place(Vector3(150, 0, -38))
+	ok = check(game.overworld.region_name() == "Aldermoor Gate", "Ilvane's gate is on the way out") and ok
+	game.overworld.interact()
+	var ilvane_said := _said(game)
+	ok = check("Briarwell" in ilvane_said and "Holt" in ilvane_said, "Ilvane points into the fields and names the warrior") and ok
+	_close_talk(game)
+	game.overworld.place_world(game.overworld.briar_pos)
+	ok = check(game.overworld.region_name() == "Briarwell", "Briarwell can be reached") and ok
+	game.overworld.interact()
+	var briar_said := _said(game)
+	ok = check("Wayside" in briar_said and "Holt" in briar_said, "Briarwell points to the wayside and the warrior") and ok
+	_close_talk(game)
+	game.overworld.place_world(game.overworld.wayside_pos)
+	ok = check(game.overworld.region_name() == "Wayside Camp", "Wayside Camp can be reached") and ok
+	game.overworld.interact()
+	var wayside_said := _said(game)
+	ok = check("Holt" in wayside_said and "warrior" in wayside_said.to_lower(), "the wayside names Holt ahead of the wall") and ok
+	_close_talk(game)
+	game.overworld.place_world(game.overworld.holt_pos + Vector3(-6.0, 0, 3.0))
+	ok = check(game.overworld.region_name() == "Holt's Road", "Holt stands before the city wall") and ok
+	ok = check(game.overworld.foe_visible("holt"), "the warrior is a visible map foe") and ok
+	ok = check(game.overworld.foes["holt"].node.get_node_or_null("Mark") != null, "Holt is marked like the other large foes") and ok
+	ok = check(game.overworld.holt_pos.x < game.overworld.zone2_end.x - 40.0, "Holt is this side of the shut wall") and ok
+	game.party.pending_points = 0
+	game.debug_touch("holt")
+	for _step in 8:
+		await process_frame
+	ok = check(game.battle.visible and not game.overworld.visible, "touching Holt fades into a fight") and ok
+	ok = check(game.battle.fighter("holt") != null, "the clearing is Holt's fight") and ok
+	game.debug_finish_battle()
+	var spend_guard := 0
+	while game.party.pending_points > 0 and spend_guard < 6:
+		game._spend_from_ui("earth")
+		spend_guard += 1
+	for _step in 8:
+		await process_frame
+	ok = check(game.overworld.visible and not game.overworld.foe_visible("holt"), "beating Holt clears him off the road") and ok
+	game.overworld.place(Vector3(0, 0, 30))
+	game.overworld.place_world(game.overworld.holt_pos)
+	ok = check(not game.overworld.foe_visible("holt"), "Holt stays gone after leaving the fields and coming back") and ok
+	game.overworld.place(Vector3(0, 0, -30))
+	ok = check(game.overworld.foe_visible("mite_1"), "ordinary meadow foes still return when their region does") and ok
 	return ok
+
+
+func _said(game) -> String:
+	var bits: PackedStringArray = []
+	for line in game.dialogue:
+		bits.append(str(line))
+	return " ".join(bits)
+
+
+func _close_talk(game) -> void:
+	var guard := 0
+	while game.mode == game.Mode.TALK and guard < 8:
+		game._advance_talk()
+		guard += 1

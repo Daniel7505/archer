@@ -48,7 +48,7 @@ With no controller plugged in, the keyboard walks the archer and the panda follo
 | Mouse | Aim a spell or shot, then click |
 | Q and R | Turn the camera. Right-drag does it too |
 | Mouse wheel | Zoom |
-| F | Talk to Lina, Quill, or Ilvane, or read a sign |
+| F | Talk to someone at a stop, or read a sign |
 | B | Spell book, the pack, and element points |
 | Space or Enter | Confirm. 1 attack, 2 spell, 3 item, 4 defend |
 | Esc | Back, or close the spell book |
@@ -95,6 +95,17 @@ Clearing a fight gives experience. A single mite is a small fight. The lurker an
 
 If you fall, you can try the battle again, or go back to camp. Camp undoes that fight's spirit growth and puts the tea on. Winning keeps the growth.
 
+## Where the talks send you
+
+The talks are a path, not a journal. Press F when you are standing with someone.
+
+1. **Bramblewick Camp**, Lina's yard. This is where you start, and where you come back for tea. Lina sends you to Quill.
+2. **Quill's stall**, on the east road, still this side of the grove. A counter, a blue awning, and crates. Quill sends you to Ilvane.
+3. **The valley gate**. White pillars and a blue door. Ilvane will not take the shard. She names Whispers of the Orb, then points you to Briarwell and to the warrior on the road.
+4. **Briarwell**, blue roofs and a fire just off the road in the outer fields. A neighbor sends you on to Wayside Camp and names Holt.
+5. **Wayside Camp**, two tents and a fire, the last stop before the wall. The watcher says Holt is ahead.
+6. **Holt** stands on the road in a red ring, the same kind of mark as the other large foes. The white wall is behind them. The city doors stay shut. Touching Holt fades into a fight, the same way the mites do.
+
 ## How big it is
 
 The overworld move speed is 6.8 meters a second. Times below are for a clear run along open ground, not a straight line through hedges.
@@ -112,7 +123,7 @@ Foliage is a collage, not a modeled forest. Each tree is a brown trunk plus thre
 ## What you can finish in this slice
 
 - Cross the opening valley in about two minutes, then walk the outer fields for several minutes toward Aldermoor's walls.
-- Walk the wilds, then the stone road east. Ilvane at the valley gate names Whispers of the Orb. The city doors are the far white wall.
+- Start in Lina's yard, then follow the talks: Quill's stall, Ilvane at the valley gate, Briarwell, Wayside Camp, and Holt on the road before the shut wall.
 - Walk a large camp, meadow, grove, and stair, plus Lamb Hill, Pebble Creek, the Jar Nook, and Broken Landing.
 - See foes on the map, walk around them, or touch one and fade into a clearing.
 - Fight mites, sprigs, pebbles, the lurker, and Mosswick.

@@ -20,6 +20,9 @@ const LABEL_Y := {
 	"lurker": 1.75,
 	"boss": 2.55,
 	"lina": 2.0,
+	"neighbor": 2.0,
+	"watcher": 2.05,
+	"warrior": 2.35,
 }
 
 
@@ -41,6 +44,12 @@ func configure(kind_name: String, label_text: String) -> void:
 			_build_boss()
 		"lina":
 			_build_lina()
+		"neighbor":
+			_build_neighbor()
+		"watcher":
+			_build_watcher()
+		"warrior":
+			_build_warrior()
 		_:
 			mesh_root.add_child(Props.sphere(0.4, Color.WHITE, Vector3(0, 0.5, 0)))
 	var label := Label3D.new()
@@ -124,6 +133,27 @@ func _build_boss() -> void:
 	mesh_root.add_child(Props.sphere(0.1, Color("6b4423"), Vector3(0, 1.46, 0.48)))
 	mesh_root.add_child(Props.sphere(0.06, Color("f2e2a8"), Vector3(-0.12, 1.5, -0.36), 0.5))
 	mesh_root.add_child(Props.sphere(0.06, Color("f2e2a8"), Vector3(0.12, 1.5, -0.36), 0.5))
+
+
+func _build_neighbor() -> void:
+	mesh_root.add_child(Props.cylinder(0.3, 1.2, Color("c47a3a"), Vector3(0, 0.72, 0)))
+	mesh_root.add_child(Props.sphere(0.22, Color("e2b394"), Vector3(0, 1.48, 0)))
+	mesh_root.add_child(Props.sphere(0.2, Color("6b4423"), Vector3(0, 1.66, 0.02)))
+
+
+func _build_watcher() -> void:
+	mesh_root.add_child(Props.cylinder(0.3, 1.25, Color("3d4f6a"), Vector3(0, 0.74, 0)))
+	mesh_root.add_child(Props.sphere(0.22, Color("e2b394"), Vector3(0, 1.5, 0)))
+	mesh_root.add_child(Props.cylinder(0.16, 0.12, Color("6b4a2e"), Vector3(0, 1.72, 0)))
+	mesh_root.add_child(Props.box(Vector3(0.08, 1.3, 0.08), Color("5a3b28"), Vector3(0.42, 0.9, 0.05)))
+
+
+func _build_warrior() -> void:
+	mesh_root.add_child(Props.cylinder(0.34, 1.45, Color("8c2f2f"), Vector3(0, 0.85, 0)))
+	mesh_root.add_child(Props.sphere(0.24, Color("e2b394"), Vector3(0, 1.72, 0)))
+	mesh_root.add_child(Props.cylinder(0.22, 0.16, Color("c9a24a"), Vector3(0, 1.92, 0)))
+	mesh_root.add_child(Props.box(Vector3(0.1, 1.7, 0.1), Color("d9d3c4"), Vector3(0.48, 1.05, 0.1)))
+	mesh_root.add_child(Props.box(Vector3(0.55, 0.08, 0.12), Color("c9a24a"), Vector3(0.48, 1.85, 0.1)))
 
 
 func _build_lina() -> void:

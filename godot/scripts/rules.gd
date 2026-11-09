@@ -179,6 +179,10 @@ const ATTACKS := {
 		{"name": "Jar Slam", "power": 15, "radius": 2.55, "range": 4.3, "root": false},
 		{"name": "Cork Seal", "power": 7, "radius": 2.15, "range": 6.2, "root": true},
 	],
+	"warrior": [
+		{"name": "Road Sweep", "power": 12, "radius": 1.9, "range": 2.8, "root": false},
+		{"name": "Banner Crash", "power": 14, "radius": 2.2, "range": 3.6, "root": false},
+	],
 }
 
 const ENCOUNTERS := {
@@ -241,6 +245,18 @@ const ENCOUNTERS := {
 		"win": "The pebble cracks and goes quiet.",
 		"enemies": [
 			{"id": "pebble", "kind": "mite", "name": "Kiln Pebble", "pos": [0.6, -3.5], "hp": 28, "agility": 7.0, "move": 3.0},
+		],
+	},
+	"holt": {
+		"title": "Holt's Road",
+		"theme": "meadow",
+		"region": "fields",
+		"xp": 36,
+		"coach": false,
+		"intro": "Holt is the warrior on the road. The red ring was the warning. The white wall stays shut behind the fight.",
+		"win": "Holt steps off the road. The white wall is still shut.",
+		"enemies": [
+			{"id": "holt", "kind": "warrior", "name": "Holt", "pos": [0.2, -3.8], "hp": 72, "agility": 9.0, "move": 3.4},
 		],
 	},
 	"stair": {
