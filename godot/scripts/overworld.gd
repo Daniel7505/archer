@@ -1104,7 +1104,8 @@ func _build_city_wall() -> void:
 func _build_main_road() -> void:
 	# One pale ribbon, always drawn, from the yard to the shut wall.
 	var yard_z := 30.0 * ZONE1_SCALE
-	var gate := Vector3(0.0, 0.0, 18.0 * ZONE1_SCALE)
+	var hedge_z := 12.0 * ZONE1_SCALE
+	# Stay on x=0 through the camp-hedge gap, then north of Pebble Creek before turning east.
 	var quill_shoulder := Vector3(quill_pos.x, 0.0, quill_pos.z - 7.0)
 	var valley := Vector3(156.0 * ZONE1_SCALE, 0.0, zone2_road_z)
 	var before_briar := Vector3(briar_pos.x - 160.0, 0.0, zone2_road_z)
@@ -1115,7 +1116,9 @@ func _build_main_road() -> void:
 	var wall := Vector3(zone2_end.x - 22.0, 0.0, zone2_road_z)
 	road_points = [
 		Vector3(0.0, 0.0, yard_z - 5.0),
-		gate,
+		Vector3(0.0, 0.0, hedge_z + 12.0),
+		Vector3(0.0, 0.0, hedge_z - 14.0),
+		Vector3(0.0, 0.0, -14.0 * ZONE1_SCALE),
 		quill_shoulder,
 		valley,
 		before_briar,
@@ -1161,6 +1164,29 @@ func road_near(world: Vector3, radius: float) -> bool:
 	return false
 
 
+func road_clears_camp_exit() -> bool:
+	var hedge_z := 12.0 * ZONE1_SCALE
+	var gap := 8.0 * ZONE1_SCALE
+	var creek_x0 := 18.0 * ZONE1_SCALE
+	var creek_x1 := 52.0 * ZONE1_SCALE
+	var creek_z0 := -12.0 * ZONE1_SCALE
+	var creek_z1 := 10.0 * ZONE1_SCALE
+	var margin := 7.0
+	if road_points.size() < 2:
+		return false
+	for i in road_points.size() - 1:
+		var a: Vector3 = road_points[i]
+		var b: Vector3 = road_points[i + 1]
+		var steps := maxi(1, int(ceil(a.distance_to(b) / 4.0)))
+		for s in steps + 1:
+			var p: Vector3 = a.lerp(b, float(s) / float(steps))
+			if absf(p.z - hedge_z) < 4.0 and absf(p.x) + margin > gap:
+				return false
+			if p.x > creek_x0 - margin and p.x < creek_x1 + margin and p.z > creek_z0 - margin and p.z < creek_z1 + margin:
+				return false
+	return true
+
+
 func road_is_connected() -> bool:
 	if road_points.size() < 2:
 		return false
@@ -1182,11 +1208,11 @@ func _dist_to_segment(p: Vector2, a: Vector2, b: Vector2) -> float:
 func _init_ground() -> void:
 	var grass_tex: Texture2D = load("res://assets/ground/grass_color.jpg")
 	var gravel_tex: Texture2D = load("res://assets/ground/gravel_color.jpg")
-	# About three meters of grass per repeat, and a bit under two meters of gravel,
-	# so a field is not one stretched stamp and the stones stay smaller than a boot.
+	# Grass stays a few meters per repeat. Gravel is scaled up so the pebbles
+	# read as stones from the walking camera, not as gray noise.
 	grass_ground_mat = _ground_mat(grass_tex, Color(0.9, 0.98, 0.82), 0.32)
-	gravel_ground_mat = _ground_mat(gravel_tex, Color(0.96, 0.9, 0.78), 0.58)
-	gravel_edge_mat = _ground_mat(gravel_tex, Color(0.62, 0.5, 0.36), 0.58)
+	gravel_ground_mat = _ground_mat(gravel_tex, Color(0.78, 0.72, 0.62), 0.11)
+	gravel_edge_mat = _ground_mat(gravel_tex, Color(0.48, 0.38, 0.26), 0.11)
 
 
 func _ground_mat(tex: Texture2D, tint: Color, repeats_per_meter: float) -> StandardMaterial3D:

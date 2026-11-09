@@ -117,7 +117,7 @@ Past the valley gate, the outer fields are the second zone. The stone road to Al
 
 ## Ground
 
-The green fields use a grass photo, and the stone road uses a gravel photo. Both are from [ambientCG](https://ambientcg.com) and are **CC0 1.0** (public domain), so they are free to use in this private gift. The files are `assets/ground/grass_color.jpg` (Grass004) and `assets/ground/gravel_color.jpg` (Gravel020), with the same note in `assets/ground/LICENSE.txt`. They tile in world space at a few meters per repeat, so a meadow is not one stretched picture and the gravel is not a fine noisy grid. Camp dirt, water, and the stone stair stay flat painted color. The trees are still a trunk plus leaf cards.
+The green fields use a grass photo, and the stone road uses a gravel photo. Both are from [ambientCG](https://ambientcg.com) and are **CC0 1.0** (public domain), so they are free to use in this private gift. The files are `assets/ground/grass_color.jpg` (Grass004) and `assets/ground/gravel_color.jpg` (Gravel001), with the same note in `assets/ground/LICENSE.txt`. Grass tiles at a few meters. The gravel is scaled so the pebbles stay visible from the walking camera, instead of turning into gray noise. Camp dirt, water, and the stone stair stay flat painted color. The trees are still a trunk plus leaf cards.
 
 ## Streaming
 

@@ -175,6 +175,7 @@ func _scene() -> bool:
 	ok = check("east" in welcome and "trouble" in welcome and "Quill" in welcome, "Lina points down the east road to Quill") and ok
 	_close_talk(game)
 	ok = check(game.overworld.road_is_connected(), "the road is one connected path") and ok
+	ok = check(game.overworld.road_clears_camp_exit(), "the camp road misses the hedge and the creek") and ok
 	ok = check(game.overworld.road_near(game.overworld.hero.global_position, 18.0), "the road is visible from camp") and ok
 	ok = check(game.overworld.road_near(game.overworld.quill_pos, 16.0), "the road passes Quill's stall") and ok
 	ok = check(game.overworld.road_near(game.overworld.ilvane_pos, 28.0), "the road passes the valley gate") and ok
