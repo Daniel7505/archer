@@ -34,6 +34,7 @@ var cam_yaw := 0.2
 var cam_dist := 11.5
 var cam_height := 8.0
 var cam_pitch := 0.58
+var look_blend := 0.0
 const PITCH_MIN := 0.12
 const PITCH_MAX := 1.05
 var cam_snap := true
@@ -75,9 +76,9 @@ func _process(delta: float) -> void:
 		elif overworld and mode != Mode.TITLE:
 			hud.set_region(overworld.region_name())
 		if mode == Mode.PLAY:
-			var hint := "WASD walk. Space jumps. Right-drag looks around. F talk. B book."
+			var hint := "WASD walk. Space jumps. Mouse up and down looks. Q and R turn. F talk. B book."
 			if overworld.coop_active():
-				hint = "Co-op. Archer WASD, Space jumps. Panda left stick. Right-drag looks around. F talk. B book."
+				hint = "Co-op. Archer WASD, Space jumps. Panda left stick. Mouse up and down looks. Q and R turn."
 			if party.pending_points > 0:
 				hint = "Element points to place. Press B.  " + hint
 			hud.set_prompt(hint)
@@ -91,10 +92,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			cam_dist = clampf(cam_dist + 1.1, 7.0, 18.0)
 			return
-	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
-		cam_yaw -= event.relative.x * 0.006
-		nudge_camera_pitch(event.relative.y * 0.004)
-		return
 	if event is InputEventKey and event.echo:
 		return
 	match mode:
@@ -119,6 +116,20 @@ func _unhandled_input(event: InputEvent) -> void:
 				_panel_number(event)
 		Mode.LEVELUP, Mode.DEFEAT, Mode.ENDING:
 			_panel_number(event)
+
+
+func _input(event: InputEvent) -> void:
+	if mode != Mode.PLAY or overworld == null or not overworld.active:
+		return
+	if event.is_action_pressed("jump"):
+		overworld.queue_jump()
+	if event is InputEventMouseMotion:
+		var motion := event as InputEventMouseMotion
+		var looking := (motion.button_mask & MOUSE_BUTTON_MASK_RIGHT) != 0
+		if looking:
+			cam_yaw -= motion.relative.x * 0.008
+		# Mouse up looks up: a negative relative.y lowers the orbit toward the horizon.
+		nudge_camera_pitch(motion.relative.y * 0.012)
 
 
 func _on_choice(id: String) -> void:
@@ -152,6 +163,8 @@ func debug_skip_title() -> void:
 	hud.hide_text_panel()
 	mode = Mode.PLAY
 	overworld.active = true
+	if get_viewport():
+		get_viewport().gui_release_focus()
 	_apply_play_cam()
 
 
@@ -224,6 +237,7 @@ func _bind(action: String, key: Key) -> void:
 	if not InputMap.has_action(action):
 		InputMap.add_action(action)
 	var ev := InputEventKey.new()
+	ev.keycode = key
 	ev.physical_keycode = key
 	InputMap.action_add_event(action, ev)
 
@@ -303,6 +317,8 @@ func _begin_game() -> void:
 		return
 	hud.hide_text_panel()
 	panel_ids.clear()
+	if get_viewport():
+		get_viewport().gui_release_focus()
 	_start_music()
 	if party.intro_done:
 		mode = Mode.PLAY
@@ -654,6 +670,7 @@ func _panel_number(event: InputEvent) -> void:
 
 func nudge_camera_pitch(amount: float) -> void:
 	cam_pitch = clampf(cam_pitch + amount, PITCH_MIN, PITCH_MAX)
+	look_blend = 0.28
 
 
 func _apply_battle_cam() -> void:
@@ -700,11 +717,14 @@ func _update_camera(delta: float) -> void:
 	if viewing_battle:
 		vert = maxf(vert, 4.0)
 	var desired := target + Vector3(sin(cam_yaw) * horiz, vert, cos(cam_yaw) * horiz)
+	var rate := 18.0 if look_blend > 0.0 else 4.0
+	if look_blend > 0.0:
+		look_blend = maxf(0.0, look_blend - delta)
 	if cam_snap:
 		camera.global_position = desired
 		cam_snap = false
 	else:
-		camera.global_position = camera.global_position.lerp(desired, 1.0 - exp(-4.0 * delta))
+		camera.global_position = camera.global_position.lerp(desired, 1.0 - exp(-rate * delta))
 	if camera.global_position.distance_squared_to(target) > 0.01:
 		camera.look_at(target, Vector3.UP)
 

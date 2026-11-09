@@ -28,6 +28,7 @@ var holt_pos := Vector3.ZERO
 var briar_built := false
 var wayside_built := false
 var road_points: Array[Vector3] = []
+var jump_queued := false
 var signs: Array = []
 var jars: Array = []
 var foes := {}
@@ -143,9 +144,10 @@ func _physics_process(delta: float) -> void:
 		hero_visual.set_moving(false)
 	var on_ground := hero.global_position.y <= 0.92 and hero.velocity.y <= 0.1
 	var vy := 0.0 if on_ground else hero.velocity.y
-	if on_ground and Input.is_action_just_pressed("jump"):
+	if on_ground and jump_queued:
 		vy = 8.6
 		on_ground = false
+	jump_queued = false
 	if not on_ground:
 		vy -= 32.0 * delta
 	hero.velocity = Vector3(wish.x, vy, wish.z)
@@ -162,6 +164,10 @@ func _physics_process(delta: float) -> void:
 		stream_timer = 0.0
 		_update_stream()
 	_tick_foes(delta)
+
+
+func queue_jump() -> void:
+	jump_queued = true
 
 
 func region_id() -> String:

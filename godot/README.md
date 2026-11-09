@@ -45,12 +45,12 @@ With no controller plugged in, the keyboard walks the archer and the panda follo
 | Key | Action |
 |---|---|
 | W A S D or arrows | Walk the archer. In a fight, walk the blue circle |
-| Mouse | Aim a spell or shot, then click |
-| Q and R, or right-drag | Turn the camera left and right. Right-drag also looks up and down |
+| Mouse | Move it up to look up, and down to look down. In a fight, click still aims a spell |
+| Q and R, or right-drag | Turn the camera left and right. Right-drag looks up and down too |
 | Mouse wheel | Zoom |
 | F | Talk to someone at a stop, or read a sign |
 | B | Spell book, the pack, and element points |
-| Space | Jump while walking. In a talk or a fight, Space still confirms |
+| Space | Jump while walking the world. On the title screen, Space still begins. In a talk or a fight, Space still confirms |
 | Enter | Confirm, begin, and advance a talk. 1 attack, 2 spell, 3 item, 4 defend |
 | Esc | Back, or close the spell book |
 

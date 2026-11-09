@@ -175,13 +175,18 @@ func _scene() -> bool:
 	ok = check(game.overworld.road_near(game.overworld.holt_pos, 16.0), "the road passes Holt") and ok
 	ok = check(game.overworld.road_near(game.overworld.zone2_end, 36.0), "the road reaches the shut wall") and ok
 	var pitch_low: float = game.cam_pitch
-	game.nudge_camera_pitch(-2.0)
-	ok = check(is_equal_approx(game.cam_pitch, game.PITCH_MIN), "the camera pitch will not go through the ground") and ok
-	game.nudge_camera_pitch(3.0)
-	ok = check(is_equal_approx(game.cam_pitch, game.PITCH_MAX), "the camera pitch will not flip overhead") and ok
+	_mouse_look(game, 0.0, -400.0, false)
+	ok = check(is_equal_approx(game.cam_pitch, game.PITCH_MIN), "looking up stops before the camera goes under the ground") and ok
+	_mouse_look(game, 0.0, 800.0, false)
+	ok = check(is_equal_approx(game.cam_pitch, game.PITCH_MAX), "looking down stops before the camera points straight overhead") and ok
 	game.cam_pitch = pitch_low
-	game.nudge_camera_pitch(0.2)
-	ok = check(game.cam_pitch > pitch_low and game.cam_pitch < game.PITCH_MAX, "the camera can pitch between the clamps") and ok
+	var yaw_before: float = game.cam_yaw
+	_mouse_look(game, 40.0, 18.0, false)
+	ok = check(game.cam_pitch > pitch_low and game.cam_pitch < game.PITCH_MAX, "moving the mouse up and down pitches the camera") and ok
+	ok = check(is_equal_approx(game.cam_yaw, yaw_before), "a plain mouse move does not steal the left and right pan") and ok
+	_mouse_look(game, 50.0, 0.0, true)
+	ok = check(not is_equal_approx(game.cam_yaw, yaw_before), "right-drag still pans left and right") and ok
+	ok = check(InputMap.has_action("camera_left") and InputMap.has_action("camera_right"), "Q and R still turn the camera") and ok
 	game.cam_pitch = pitch_low
 	ok = check(game.overworld.count_foes("camp") == 0, "camp has no wandering foes") and ok
 	ok = check(game.overworld.count_foes("meadow") >= 4, "the meadow has visible wanderers") and ok
@@ -278,12 +283,17 @@ func _scene() -> bool:
 			space_confirms = true
 	ok = check(space_jumps and space_confirms, "Space jumps, and still confirms talks and battles") and ok
 	game.overworld.place(Vector3(0, 0, 30))
+	game.mode = game.Mode.TITLE
+	game.overworld.active = false
+	var y_title: float = game.overworld.hero.global_position.y
+	_tap_space()
+	await physics_frame
+	ok = check(absf(game.overworld.hero.global_position.y - y_title) < 0.05, "Space on the title does not jump") and ok
 	game.mode = game.Mode.PLAY
 	game.overworld.active = true
 	var y0: float = game.overworld.hero.global_position.y
-	Input.action_press("jump")
+	_tap_space()
 	await physics_frame
-	Input.action_release("jump")
 	var peak := y0
 	var landed := false
 	for _step in 50:
@@ -299,6 +309,27 @@ func _scene() -> bool:
 	game._open_book()
 	ok = check("Grok Bot wrote the words, for Nick and Suni." in game.hud.panel_body.text, "the spell book credits Grok Bot") and ok
 	return ok
+
+
+func _mouse_look(game, rel_x: float, rel_y: float, dragging: bool) -> void:
+	var motion := InputEventMouseMotion.new()
+	motion.relative = Vector2(rel_x, rel_y)
+	if dragging:
+		motion.button_mask = MOUSE_BUTTON_MASK_RIGHT
+	game._input(motion)
+
+
+func _tap_space() -> void:
+	var down := InputEventKey.new()
+	down.keycode = KEY_SPACE
+	down.physical_keycode = KEY_SPACE
+	down.pressed = true
+	Input.parse_input_event(down)
+	var up := InputEventKey.new()
+	up.keycode = KEY_SPACE
+	up.physical_keycode = KEY_SPACE
+	up.pressed = false
+	Input.parse_input_event(up)
 
 
 func _said(game) -> String:

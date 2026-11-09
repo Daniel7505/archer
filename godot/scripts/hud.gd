@@ -48,6 +48,7 @@ func _build() -> void:
 	left.offset_top = 16
 	left.offset_right = 390
 	left.offset_bottom = 400
+	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	left.add_theme_stylebox_override("panel", _panel_style())
 	add_child(left)
 	var left_box := VBoxContainer.new()
@@ -376,6 +377,7 @@ func _label(text: String, size: int) -> Label:
 	label.text = text
 	label.add_theme_font_size_override("font_size", size)
 	label.add_theme_color_override("font_color", Color("f6efe2"))
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
 
 
@@ -384,6 +386,7 @@ func _bar(color: Color) -> Dictionary:
 	bar.max_value = 100
 	bar.value = 0
 	bar.show_percentage = false
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar.custom_minimum_size = Vector2(220, 14)
 	var bg := StyleBoxFlat.new()
 	bg.bg_color = Color(0, 0, 0, 0.45)
