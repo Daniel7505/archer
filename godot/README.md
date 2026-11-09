@@ -18,9 +18,17 @@ The window is 1280×720. The renderer is Compatibility, so it can open on more c
 
 ## How to play
 
-You start at Bramblewick Camp. Lina keeps the tea, and nothing wanders there. The story is still short: Mosswick has corked the grove's wicklights into jars. The way runs north across the Golden Meadow, east into the Lantern Grove, and on to the Sealed Stair. The ground is wide. You can leave the path.
+## The story so far
 
-The archer and the panda share **one life**. They are two bodies. A red circle hurts each body it catches, so standing in the same circle can hurt twice. Standing together inside Dewmend heals a little extra.
+This follows the films, not a borrowed plot. The archer and the panda already fought and became partners. Their pack still holds what they took off Grubbo: a gold-coin buckle, a moustache comb, some coins, and a Mystery Shard. The spirit panda can be a mount later. That call is not on this stretch of road yet.
+
+Bramblewick Camp, the meadow, the grove, and the stair are the opening wilds. Mosswick corking the wicklights is trouble on the way, not the whole game. East of the meadow a stone road runs to **Aldermoor**, the white city. The doors are shut. **Seer Ilvane** waits outside and will not buy the shard. She names the work **Whispers of the Orb**: seven cursed orbs, and the shard is a whisper of one. Peddler Quill, on that road, only sells the rumor.
+
+## How to play
+
+You start at Bramblewick Camp. Lina keeps the tea, and nothing wanders there. North is the Golden Meadow, then the Lantern Grove and the Sealed Stair. East, past the meadow fork, is the Aldermoor road. You can leave the path. Lamb Hill, Pebble Creek, the Jar Nook, and Broken Landing are optional.
+
+Each of them has a **life**. **Spirit is shared.** A red circle hurts every body standing in it. Dewmend heals each of you inside it, and a little more when you stand together. If one of you falls, the other can still act and can heal them. If both fall, the fight is lost.
 
 ### On the map
 
@@ -30,17 +38,32 @@ Touching a foe fades the map to black and opens a cleared battle field in the co
 
 The road forks. West of the meadow fork is Lamb Hill, only a view. East of the camp hedge, still in the meadow, is Pebble Creek. The grove has a Jar Nook. The stair has a Broken Landing. Berries, spirit sips, and short notes are lying in those corners. None of them are required to reach Mosswick. The east trees past the grove are empty on purpose.
 
+### One player
+
+With no controller plugged in, the keyboard walks the archer and the panda follows. In a fight, the same keys play whoever's gauge fills, archer or panda.
+
 | Key | Action |
 |---|---|
-| W A S D or arrows | Walk |
+| W A S D or arrows | Walk the archer. In a fight, walk the blue circle |
+| Mouse | Aim a spell or shot, then click |
 | Q and R | Turn the camera. Right-drag does it too |
 | Mouse wheel | Zoom |
-| F | Talk to Lina, or read a sign. Lina restores life, spirit, and berries |
-| B | Spell book. This is also where you place element points |
-| Space or Enter | Continue dialogue |
-| Esc | Close the spell book |
+| F | Talk to Lina, Quill, or Ilvane, or read a sign |
+| B | Spell book, the pack, and element points |
+| Space or Enter | Confirm. 1 attack, 2 spell, 3 item, 4 defend |
+| Esc | Back, or close the spell book |
 
-Walk into a berry, a sip, or a note to take it. You do not need F for those.
+### Two players on one computer
+
+Plug a PlayStation DualShock or DualSense, or any standard pad, into the desktop. No account and no network. The first pad is player 2.
+
+Player 1 keeps the keyboard and mouse as the archer. Player 2 is the panda: left stick to walk, right stick or the d-pad to aim circles. Cross confirms, Circle backs out, Square attacks, Triangle opens spells, L1 is the item, R1 defends. The names match a PlayStation pad. An Xbox-style pad uses the same positions: A, B, X, Y, LB, RB.
+
+On the map you move at the same time. The camera pulls back to frame both of you. In a fight, time waits on each gauge. When the archer's gauge fills, player 1 acts. When the panda's fills, player 2 acts. If the pad never moves, the game stays single-player and the panda keeps following.
+
+There is no online play.
+
+Walk into a berry, a sip, or a note to take it. You do not need F for those. F is for people and signs. Lina refills life, shared spirit, and berries.
 
 ### In a fight
 
@@ -74,6 +97,7 @@ If you fall, you can try the battle again, or go back to camp. Camp undoes that 
 
 ## What you can finish in this slice
 
+- Walk the wilds, then the stone road east until Aldermoor's shut gate, and hear Ilvane name Whispers of the Orb.
 - Walk a large camp, meadow, grove, and stair, plus Lamb Hill, Pebble Creek, the Jar Nook, and Broken Landing.
 - See foes on the map, walk around them, or touch one and fade into a clearing.
 - Fight mites, sprigs, pebbles, the lurker, and Mosswick.

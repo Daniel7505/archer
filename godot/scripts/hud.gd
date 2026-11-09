@@ -5,6 +5,9 @@ signal choice(id: String)
 var life_label: Label
 var life_bar: ProgressBar
 var life_fill: StyleBoxFlat
+var panda_label: Label
+var panda_bar: ProgressBar
+var panda_fill: StyleBoxFlat
 var spirit_label: Label
 var spirit_bar: ProgressBar
 var element_box: VBoxContainer
@@ -44,7 +47,7 @@ func _build() -> void:
 	left.offset_left = 16
 	left.offset_top = 16
 	left.offset_right = 390
-	left.offset_bottom = 330
+	left.offset_bottom = 400
 	left.add_theme_stylebox_override("panel", _panel_style())
 	add_child(left)
 	var left_box := VBoxContainer.new()
@@ -52,12 +55,18 @@ func _build() -> void:
 	left.add_child(left_box)
 	region_label = _label("Bramblewick Camp", 18)
 	left_box.add_child(region_label)
-	life_label = _label("Life 64/64", 16)
+	life_label = _label("Archer 64/64", 16)
 	left_box.add_child(life_label)
 	var life_ui := _bar(Color("7dbe6a"))
 	life_bar = life_ui.bar
 	life_fill = life_ui.fill
 	left_box.add_child(life_bar)
+	panda_label = _label("Panda 64/64", 16)
+	left_box.add_child(panda_label)
+	var panda_ui := _bar(Color("f0e6c8"))
+	panda_bar = panda_ui.bar
+	panda_fill = panda_ui.fill
+	left_box.add_child(panda_bar)
 	spirit_label = _label("Spirit 28/28", 16)
 	left_box.add_child(spirit_label)
 	spirit_bar = _bar(Color("6aa4d6")).bar
@@ -204,12 +213,17 @@ func set_prompt(text: String) -> void:
 
 
 func set_vitals(party) -> void:
-	life_label.text = "Life  %d/%d    level %d" % [party.hp, party.hp_max, party.level]
-	life_bar.max_value = party.hp_max
-	life_bar.value = party.hp
+	life_label.text = "Archer  %d/%d    level %d%s" % [party.archer_hp, party.archer_hp_max, party.level, "  down" if party.archer_hp <= 0 else ""]
+	life_bar.max_value = party.archer_hp_max
+	life_bar.value = party.archer_hp
 	if life_fill:
-		life_fill.bg_color = Color("c4552a") if party.hp * 3 <= party.hp_max else Color("7dbe6a")
-	spirit_label.text = "Spirit  %d/%d" % [party.mp, party.mp_max]
+		life_fill.bg_color = Color("c4552a") if party.archer_hp * 3 <= party.archer_hp_max else Color("7dbe6a")
+	panda_label.text = "Panda  %d/%d%s" % [party.panda_hp, party.panda_hp_max, "  down" if party.panda_hp <= 0 else ""]
+	panda_bar.max_value = party.panda_hp_max
+	panda_bar.value = party.panda_hp
+	if panda_fill:
+		panda_fill.bg_color = Color("c4552a") if party.panda_hp * 3 <= party.panda_hp_max else Color("f0e6c8")
+	spirit_label.text = "Shared spirit  %d/%d" % [party.mp, party.mp_max]
 	spirit_bar.max_value = maxi(1, party.mp_max)
 	spirit_bar.value = party.mp
 	var rules = preload("res://scripts/rules.gd")
@@ -223,7 +237,7 @@ func set_vitals(party) -> void:
 	if party.pending_points > 0:
 		point_label.text = "%d element point%s to place  (B)" % [party.pending_points, "" if party.pending_points == 1 else "s"]
 	else:
-		point_label.text = "One life, two bodies."
+		point_label.text = "Two lives. One shared spirit."
 
 
 func set_battle_mode(on: bool) -> void:

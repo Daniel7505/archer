@@ -48,9 +48,10 @@ func _rules() -> bool:
 	var party = PartyState.new()
 	var snap: Dictionary = party.snapshot()
 	party.note_cast("fire", 12)
-	party.hp = 10
+	party.archer_hp = 10
+	party.panda_hp = 12
 	party.restore(snap)
-	ok = check(party.hp == 64 and int(party.elements.fire.xp) == 0, "defeat rollback undoes spirit growth") and ok
+	ok = check(party.archer_hp == 64 and party.panda_hp == 64 and int(party.elements.fire.xp) == 0, "defeat rollback undoes spirit growth") and ok
 	party.note_cast("fire", 12)
 	party.note_cast("fire", 12)
 	ok = check(int(party.elements.fire.level) == 2, "use-to-level reaches 2") and ok
@@ -97,29 +98,36 @@ func _logic_battle() -> bool:
 	ok = check(saw, "the stronger fire spell is announced") and ok
 	ok = check(Rules.is_known(party.elements, "hearthburst"), "hearthburst is castable after use") and ok
 	ok = check(party.mp == 0, "spirit was spent on the casts") and ok
-	var before: int = party.hp
 	battle.fighter("archer").pos = Vector3.ZERO
 	battle.fighter("panda").pos = Vector3(0.3, 0, 0.2)
 	battle.fighter("archer").defending = false
 	battle.fighter("panda").defending = false
 	battle.fighter("archer").guard_mult = 1.0
 	battle.fighter("panda").guard_mult = 1.0
-	party.hp = 50
+	party.archer_hp = 50
+	party.panda_hp = 50
 	battle.debug_apply_attack(Vector3.ZERO, 10, 2.0)
-	ok = check(party.hp == 30, "a circle that catches both bodies hurts the shared life twice") and ok
-	party.hp = 40
+	ok = check(party.archer_hp == 40 and party.panda_hp == 40, "a circle that catches both bodies hurts each life") and ok
+	party.archer_hp = 40
+	party.panda_hp = 40
 	battle.fighter("archer").defending = true
 	battle.fighter("panda").pos = Vector3(6, 0, 6)
 	battle.debug_apply_attack(Vector3.ZERO, 10, 0.6)
-	ok = check(party.hp == 35, "defend halves the hit on the body that braced") and ok
-	party.hp = 20
-	party.mp = 12
+	ok = check(party.archer_hp == 35 and party.panda_hp == 40, "defend halves only the body that braced") and ok
+	party.archer_hp = 20
+	party.panda_hp = 20
+	party.mp = 20
 	battle.force_turn("panda")
 	var spot: Vector3 = battle.fighter("panda").pos
 	battle.fighter("archer").pos = spot
 	battle.debug_cast("dew_mend", spot)
-	ok = check(party.hp == 46, "Dewmend heals more when both stand inside") and ok
+	ok = check(party.archer_hp == 46 and party.panda_hp == 46, "Dewmend heals each body inside, more when both stand there") and ok
 	ok = check(int(party.elements.water.xp) == 12, "water grows by being cast") and ok
+	battle.force_turn("panda")
+	var foe = battle.fighter("mite_b")
+	var aim: Vector3 = foe.pos if foe != null else Vector3(0, 0, -3)
+	battle.debug_cast("skyfang", aim)
+	ok = check(int(party.elements.wind.xp) > 0 or int(party.elements.wind.level) > 1, "a scripted panda action can cast") and ok
 	battle.queue_free()
 	return ok
 
@@ -138,6 +146,8 @@ func _scene() -> bool:
 	ok = check(game.get_node_or_null("Overworld") != null, "overworld exists") and ok
 	ok = check(game.get_node_or_null("Battle") != null, "battle exists") and ok
 	ok = check(game.get_node_or_null("HUD") != null, "hud exists") and ok
+	ok = check(InputMap.has_action("p2_confirm") and InputMap.has_action("p2_attack") and InputMap.has_action("p2_spell") and InputMap.has_action("p2_item") and InputMap.has_action("p2_defend"), "player 2 pad actions exist") and ok
+	ok = check(not game.overworld.coop_active(), "without a pad the party stays single-player") and ok
 	game.debug_skip_title()
 	ok = check(game.overworld.region_name() == "Bramblewick Camp", "camp is named") and ok
 	ok = check(game.overworld.count_foes("camp") == 0, "camp has no wandering foes") and ok

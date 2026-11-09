@@ -5,6 +5,7 @@ const Fighter = preload("res://scripts/fighter.gd")
 const ActorVisual = preload("res://scripts/actor_visual.gd")
 const Circle = preload("res://scripts/circle.gd")
 const Props = preload("res://scripts/props.gd")
+const Pads = preload("res://scripts/pads.gd")
 
 signal battle_over(victory: bool)
 
@@ -122,6 +123,26 @@ func input_event(event: InputEvent) -> void:
 		return
 	if event is InputEventKey and event.echo:
 		return
+	var panda_turn: bool = active != null and str(active.kind) == "panda"
+	if panda_turn and event.is_action_pressed("p2_cancel"):
+		_cancel()
+		return
+	if panda_turn and event.is_action_pressed("p2_confirm"):
+		_confirm()
+		return
+	if panda_turn and state == "menu":
+		if event.is_action_pressed("p2_attack"):
+			choose("attack")
+			return
+		if event.is_action_pressed("p2_spell"):
+			choose("spells")
+			return
+		if event.is_action_pressed("p2_item"):
+			choose("items")
+			return
+		if event.is_action_pressed("p2_defend"):
+			choose("defend")
+			return
 	if event.is_action_pressed("cancel"):
 		_cancel()
 		return
@@ -137,6 +158,8 @@ func input_event(event: InputEvent) -> void:
 				choose(picked)
 			return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if active != null and active.kind == "panda" and Pads.panda_uses_pad():
+			return
 		if _pointer_over_ui():
 			return
 		var point = _ground(event.position)
@@ -235,18 +258,20 @@ func resolve_now(caster, spell: Dictionary, at: Vector3) -> Dictionary:
 						enemy.visual.fall()
 	if heal > 0:
 		var inside: Array = []
-		for hero in _living("hero"):
+		for hero in _heroes():
 			if Rules.in_circle(hero.pos, at, radius):
 				inside.append(hero)
 		if not inside.is_empty():
-			var amount := heal + (8 if inside.size() >= 2 else 0)
-			var before: int = party.hp
-			party.heal(amount)
-			result.floats.append({
-				"at": inside[0].pos,
-				"text": "+%d" % (party.hp - before),
-				"color": Color(0.65, 0.95, 0.78),
-			})
+			var bonus := 8 if inside.size() >= 2 else 0
+			for hero in inside:
+				var gained: int = party.heal_body(hero.kind, heal + bonus)
+				result.floats.append({
+					"at": hero.pos,
+					"text": "+%d" % gained,
+					"color": Color(0.65, 0.95, 0.78),
+				})
+				if gained > 0 and hero.visual and hero.visual.fallen:
+					hero.visual.revive()
 	if bool(spell.get("root", false)):
 		for enemy in _living("enemy"):
 			if Rules.in_circle(enemy.pos, at, radius):
@@ -284,18 +309,21 @@ func resolve_enemy_hit(enemy, attack: Dictionary, at: Vector3) -> void:
 	for hero in _living("hero"):
 		if Rules.in_circle(hero.pos, at, radius):
 			var dealt := Rules.hurt(int(attack.power), hero.defending, hero.guard_mult)
-			party.hp -= dealt
+			party.hurt_body(hero.kind, dealt)
 			caught += 1
 			_float(hero.pos, str(dealt), Color(1, 0.45, 0.4))
 			if hero.visual:
 				hero.visual.flash()
-				hero.visual.play_once("hit_react")
+				if party.is_up(hero.kind):
+					hero.visual.play_once("hit_react")
+				else:
+					hero.gauge = 0.0
+					hero.visual.fall()
 			if bool(attack.get("root", false)):
 				hero.root_scale = 0.42
 				_float(hero.pos + Vector3(0, 0.5, 0), "rooted", Color(0.9, 0.7, 0.4))
 	if caught == 0:
 		_float(at, "miss", Color(0.85, 0.85, 0.85))
-	party.hp = maxi(0, party.hp)
 	_check_end()
 
 
@@ -341,6 +369,8 @@ func _begin_player(f) -> void:
 	f.root_scale = 1.0
 	_show_move_circle()
 	var hint := "%s's turn. Walk inside the blue circle, then Space." % f.display
+	if f.kind == "panda" and Pads.panda_uses_pad():
+		hint = "Panda's turn. Left stick walks the circle. Cross confirms. Square attacks, Triangle casts, L1 item, R1 defend."
 	if coach and not coach_used:
 		hint += " That circle is the whole step for this action."
 		coach_used = true
@@ -555,7 +585,7 @@ func _do_item(id: String) -> void:
 	if int(party.items.get(id, 0)) <= 0:
 		_prompt("You do not have that.")
 		return
-	var msg := str(party.use_item(id))
+	var msg := str(party.use_item(id, active.kind))
 	_float(active.pos, msg, Color(0.7, 0.95, 0.7))
 	_prompt(msg)
 	_close_turn()
@@ -580,8 +610,7 @@ func _close_turn() -> void:
 func _check_end() -> bool:
 	if over or party == null:
 		return over
-	if party.hp <= 0:
-		party.hp = 0
+	if not party.any_up():
 		_finish(false)
 		return true
 	for f in fighters:
@@ -608,7 +637,7 @@ func _finish(victory: bool) -> void:
 
 
 func _steer_body(delta: float) -> void:
-	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var input := _move_input()
 	if input.length() < 0.08 or active == null or active.visual == null:
 		if active and active.visual:
 			active.visual.set_moving(false)
@@ -629,12 +658,12 @@ func _steer_aim(delta: float) -> void:
 		aim_pos = active.pos if active else aim_pos
 		_place_aim_circle()
 		return
-	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var input := _aim_input()
 	var moved := false
 	if input.length() > 0.08:
 		aim_pos += _input_dir(input) * 8.0 * delta
 		moved = true
-	elif get_viewport():
+	elif not _pad_owns_panda() and get_viewport():
 		var mouse := get_viewport().get_mouse_position()
 		if mouse.distance_to(last_mouse) > 3.0:
 			var point = _ground(mouse)
@@ -646,6 +675,47 @@ func _steer_aim(delta: float) -> void:
 	_place_aim_circle()
 	if moved:
 		_prompt(_aim_prompt())
+
+
+func _pad_owns_panda() -> bool:
+	return active != null and active.kind == "panda" and Pads.panda_uses_pad()
+
+
+func _move_input() -> Vector2:
+	if _pad_owns_panda():
+		var stick := Pads.left_stick()
+		var dpad := _dpad_vector()
+		if stick.length() > 0.01:
+			return stick
+		return dpad
+	return Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+
+
+func _aim_input() -> Vector2:
+	if _pad_owns_panda():
+		var stick := Pads.right_stick()
+		if stick.length() < 0.01:
+			stick = Pads.left_stick()
+		var dpad := _dpad_vector()
+		if stick.length() > 0.01:
+			return stick
+		return dpad
+	return Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+
+
+func _dpad_vector() -> Vector2:
+	if not Pads.connected():
+		return Vector2.ZERO
+	var v := Vector2.ZERO
+	if Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_LEFT):
+		v.x -= 1.0
+	if Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_RIGHT):
+		v.x += 1.0
+	if Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_UP):
+		v.y -= 1.0
+	if Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_DOWN):
+		v.y += 1.0
+	return v
 
 
 func _input_dir(input: Vector2) -> Vector3:
@@ -759,7 +829,15 @@ func _is_living(f) -> bool:
 		return false
 	if f.side == "enemy":
 		return f.hp > 0
-	return party != null and party.hp > 0
+	return party != null and party.is_up(f.kind)
+
+
+func _heroes() -> Array:
+	var out: Array = []
+	for f in fighters:
+		if f.side == "hero":
+			out.append(f)
+	return out
 
 
 func _nearest(from: Vector3, group: Array):

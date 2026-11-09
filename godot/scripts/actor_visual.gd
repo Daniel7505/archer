@@ -226,6 +226,13 @@ func fall() -> void:
 		mesh_root.position.y = 0.05
 
 
+func revive() -> void:
+	fallen = false
+	if mesh_root:
+		mesh_root.rotation.x = 0.0
+		mesh_root.position.y = 0.0
+
+
 func _process(delta: float) -> void:
 	if mesh_root == null or fallen:
 		return

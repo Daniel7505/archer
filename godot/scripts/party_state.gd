@@ -2,8 +2,11 @@ extends RefCounted
 
 const Rules = preload("res://scripts/rules.gd")
 
-var hp := 64
-var hp_max := 64
+var archer_hp := 64
+var archer_hp_max := 64
+var panda_hp := 64
+var panda_hp_max := 64
+var heard_orbs := false
 var mp := 28
 var mp_max := 28
 var level := 1
@@ -31,8 +34,10 @@ var cleared := {
 
 func snapshot() -> Dictionary:
 	return {
-		"hp": hp,
-		"hp_max": hp_max,
+		"archer_hp": archer_hp,
+		"archer_hp_max": archer_hp_max,
+		"panda_hp": panda_hp,
+		"panda_hp_max": panda_hp_max,
 		"mp": mp,
 		"mp_max": mp_max,
 		"level": level,
@@ -45,8 +50,10 @@ func snapshot() -> Dictionary:
 
 
 func restore(data: Dictionary) -> void:
-	hp = int(data.hp)
-	hp_max = int(data.hp_max)
+	archer_hp = int(data.archer_hp)
+	archer_hp_max = int(data.archer_hp_max)
+	panda_hp = int(data.panda_hp)
+	panda_hp_max = int(data.panda_hp_max)
 	mp = int(data.mp)
 	mp_max = int(data.mp_max)
 	level = int(data.level)
@@ -97,35 +104,71 @@ func grant_victory_xp(amount: int) -> int:
 		level += 1
 		gained += 1
 		pending_points += 2
-		hp_max += 8
+		archer_hp_max += 8
+		panda_hp_max += 8
 		mp_max += 4
-		hp = mini(hp_max, hp + 8)
+		archer_hp = mini(archer_hp_max, archer_hp + 8)
+		panda_hp = mini(panda_hp_max, panda_hp + 8)
 		mp = mini(mp_max, mp + 4)
 		xp_to_next = 30 + (level - 1) * 20
 		guard += 1
 	return gained
 
 
-func heal(amount: int) -> void:
-	hp = mini(hp_max, hp + amount)
+func body_hp(kind: String) -> int:
+	if kind == "panda":
+		return panda_hp
+	return archer_hp
+
+
+func body_max(kind: String) -> int:
+	if kind == "panda":
+		return panda_hp_max
+	return archer_hp_max
+
+
+func is_up(kind: String) -> bool:
+	return body_hp(kind) > 0
+
+
+func any_up() -> bool:
+	return archer_hp > 0 or panda_hp > 0
+
+
+func set_body_hp(kind: String, value: int) -> void:
+	if kind == "panda":
+		panda_hp = value
+	else:
+		archer_hp = value
+
+
+func hurt_body(kind: String, amount: int) -> void:
+	set_body_hp(kind, maxi(0, body_hp(kind) - amount))
+
+
+func heal_body(kind: String, amount: int) -> int:
+	var before := body_hp(kind)
+	var after := mini(body_max(kind), before + amount)
+	set_body_hp(kind, after)
+	return after - before
 
 
 func spirit(amount: int) -> void:
 	mp = mini(mp_max, mp + amount)
 
 
-func use_item(id: String) -> String:
+func use_item(id: String, kind: String) -> String:
 	if int(items.get(id, 0)) <= 0:
 		return "Nothing left."
 	items[id] = int(items[id]) - 1
 	if id == "grove_berry":
-		var before := hp
-		heal(22)
-		return "Grove Berry. +%d life." % (hp - before)
+		var gained := heal_body(kind, 22)
+		var who := "Panda" if kind == "panda" else "Archer"
+		return "Grove Berry. +%d life for %s." % [gained, who]
 	if id == "spirit_sip":
 		var before := mp
 		spirit(14)
-		return "Spirit Sip. +%d spirit." % (mp - before)
+		return "Spirit Sip. +%d shared spirit." % (mp - before)
 	return "Used."
 
 
@@ -135,7 +178,8 @@ func add_item(id: String, amount: int) -> int:
 
 
 func full_rest() -> void:
-	hp = hp_max
+	archer_hp = archer_hp_max
+	panda_hp = panda_hp_max
 	mp = mp_max
 	if int(items.get("grove_berry", 0)) < 3:
 		items.grove_berry = 3

@@ -3,19 +3,24 @@ extends Node3D
 const ActorVisual = preload("res://scripts/actor_visual.gd")
 const Props = preload("res://scripts/props.gd")
 const Circle = preload("res://scripts/circle.gd")
+const Pads = preload("res://scripts/pads.gd")
 
 signal encounter_hit(battle_id: String, foe_id: String)
 signal lina_talk
 signal sign_read(text: String)
 signal pickup_found(kind: String, note: String)
+signal npc_talk(who: String)
 
 var party = null
 var active := false
 var yaw := 0.0
 var hero: CharacterBody3D
 var hero_visual: Node3D
+var panda_body: CharacterBody3D
 var panda: Node3D
 var panda_prev := Vector3.ZERO
+var quill_pos := Vector3(102.0, 0.0, -40.0)
+var ilvane_pos := Vector3(150.0, 0.0, -38.0)
 var lina_pos := Vector3(8.0, 0.0, 28.0)
 var signs: Array = []
 var jars: Array = []
@@ -63,6 +68,7 @@ func build() -> void:
 	_dress_grove()
 	_dress_ruin()
 	_dress_margins()
+	_dress_aldermoor_road()
 	_make_hero()
 	for spec in FOE_TABLE:
 		_spawn_foe(spec)
@@ -78,7 +84,7 @@ func build() -> void:
 	_sign(Vector3(0, 0, -40), "Fork", "The east road finds the Lantern Grove. West is only Lamb Hill, and the view.")
 	_sign(Vector3(58, 0, -36), "Grove", "Lantern Grove. Smaller things wander. The tall lurker keeps to the north path, and you can walk around it.")
 	_sign(Vector3(92, 0, -84), "Stair", "The Sealed Stair. Mosswick is the one sitting on the jar. The kiln pebbles are only pebbles.")
-	_sign(Vector3(136, 0, -40), "Later", "The east trees are still empty. There is room to grow, later.")
+	_sign(Vector3(148, 0, -22), "Later", "The east trees are still empty. There is room to grow, later.")
 	region_now = "camp"
 
 
@@ -106,7 +112,10 @@ func _physics_process(delta: float) -> void:
 			hero_visual.set_moving(false)
 	hero.move_and_slide()
 	hero.global_position.y = 0.9
-	_follow_panda(delta)
+	if Pads.panda_uses_pad():
+		_steer_panda(delta)
+	else:
+		_follow_panda(delta)
 	_tick_foes(delta)
 
 
@@ -114,6 +123,8 @@ func region_id() -> String:
 	if hero == null:
 		return "camp"
 	var p := hero.global_position
+	if p.x > 100.0 and p.z < -30.0 and p.z > -52.0:
+		return "road"
 	if p.x > 58.0 and p.z < -78.0:
 		return "stair"
 	if p.x > 58.0:
@@ -127,6 +138,10 @@ func region_name() -> String:
 	if hero == null:
 		return ""
 	var p := hero.global_position
+	if region_id() == "road":
+		if p.x > 146.0:
+			return "Aldermoor Gate"
+		return "The Aldermoor Road"
 	if p.x < -40.0 and p.z < 6.0 and p.z > -40.0:
 		return "Lamb Hill"
 	if p.x > 18.0 and p.x < 50.0 and p.z > -12.0 and p.z < 10.0:
@@ -151,9 +166,10 @@ func place(pos: Vector3) -> void:
 		return
 	hero.global_position = Vector3(pos.x, 0.9, pos.z)
 	hero.velocity = Vector3.ZERO
-	if panda:
-		panda.global_position = hero.global_position + Vector3(1.2, 0, 1.3)
-		panda_prev = panda.global_position
+	if panda_body:
+		panda_body.global_position = hero.global_position + Vector3(1.2, 0.0, 1.3)
+		panda_body.global_position.y = 0.9
+		panda_prev = panda_body.global_position
 	poll_region()
 
 
@@ -167,6 +183,10 @@ func poll_region() -> void:
 	if region != "camp" and bool(left_regions.get(region, false)):
 		_respawn_region(region)
 		left_regions[region] = false
+
+
+func coop_active() -> bool:
+	return Pads.panda_uses_pad()
 
 
 func count_foes(region: String) -> int:
@@ -212,15 +232,28 @@ func on_foe_beaten(foe_id: String) -> void:
 func interact() -> void:
 	if hero == null:
 		return
-	var p := hero.global_position
-	if Vector2(p.x - lina_pos.x, p.z - lina_pos.z).length() < 2.8:
+	if _near_party(lina_pos, 2.8):
 		lina_talk.emit()
+		return
+	if _near_party(quill_pos, 2.8):
+		npc_talk.emit("quill")
+		return
+	if _near_party(ilvane_pos, 2.8):
+		npc_talk.emit("ilvane")
 		return
 	for sign in signs:
 		var s: Vector3 = sign.pos
-		if Vector2(p.x - s.x, p.z - s.z).length() < 2.6:
+		if _near_party(s, 2.6):
 			sign_read.emit(sign.text)
 			return
+
+
+func _near_party(pos: Vector3, radius: float) -> bool:
+	if hero and Vector2(hero.global_position.x - pos.x, hero.global_position.z - pos.z).length() < radius:
+		return true
+	if panda_body and Vector2(panda_body.global_position.x - pos.x, panda_body.global_position.z - pos.z).length() < radius:
+		return true
+	return false
 
 
 func celebrate() -> void:
@@ -354,7 +387,7 @@ func _spawn_foe(spec: Dictionary) -> void:
 
 
 func _on_foe_body(body: Node, foe_id: String) -> void:
-	if not active or body != hero:
+	if not active or (body != hero and body != panda_body):
 		return
 	if not foes.has(foe_id) or bool(foes[foe_id].defeated):
 		return
@@ -363,20 +396,51 @@ func _on_foe_body(body: Node, foe_id: String) -> void:
 
 
 func _follow_panda(delta: float) -> void:
-	if panda == null or hero == null:
+	if panda_body == null or hero == null:
 		return
 	var side := hero.global_transform.basis.x
 	var back := hero.global_transform.basis.z
 	var target: Vector3 = hero.global_position + side * 1.15 + back * 1.35
-	target.y = 0.0
-	panda.global_position = panda.global_position.lerp(target, 1.0 - exp(-5.0 * delta))
-	var step: Vector3 = panda.global_position - panda_prev
-	if step.length() > 0.03 and panda.has_method("face_dir"):
-		panda.face_dir(Vector3(step.x, 0, step.z))
-		panda.set_moving(true)
-	elif panda.has_method("set_moving"):
+	target.y = 0.9
+	panda_body.velocity = Vector3.ZERO
+	panda_body.global_position = panda_body.global_position.lerp(target, 1.0 - exp(-5.0 * delta))
+	panda_body.global_position.y = 0.9
+	var step: Vector3 = panda_body.global_position - panda_prev
+	if step.length() > 0.03:
+		_face_flat(panda_body, Vector3(step.x, 0, step.z))
+		if panda:
+			panda.set_moving(true)
+	elif panda:
 		panda.set_moving(false)
-	panda_prev = panda.global_position
+	panda_prev = panda_body.global_position
+
+
+func _steer_panda(delta: float) -> void:
+	if panda_body == null:
+		return
+	var stick := Pads.left_stick()
+	if stick.length() < 0.08:
+		panda_body.velocity = Vector3.ZERO
+		if panda:
+			panda.set_moving(false)
+		return
+	var look := Vector3(-sin(yaw), 0.0, -cos(yaw))
+	var right := Vector3(cos(yaw), 0.0, -sin(yaw))
+	var dir := (right * stick.x + look * -stick.y).normalized()
+	panda_body.velocity = dir * 6.8
+	_face_flat(panda_body, dir)
+	if panda:
+		panda.set_moving(true)
+	panda_body.move_and_slide()
+	panda_body.global_position.y = 0.9
+	panda_prev = panda_body.global_position
+
+
+func _face_flat(body: Node3D, dir: Vector3) -> void:
+	dir.y = 0.0
+	if dir.length_squared() < 0.0004:
+		return
+	body.look_at(body.global_position + dir, Vector3.UP)
 
 
 func _make_hero() -> void:
@@ -394,11 +458,21 @@ func _make_hero() -> void:
 	hero_visual.position = Vector3(0, -0.9, 0)
 	hero_visual.configure("archer", "Archer")
 	add_child(hero)
+	panda_body = CharacterBody3D.new()
+	panda_body.name = "PandaBody"
+	panda_body.position = Vector3(1.4, 0.9, 31.4)
+	var panda_shape := CollisionShape3D.new()
+	var panda_capsule := CapsuleShape3D.new()
+	panda_capsule.radius = 0.42
+	panda_capsule.height = 1.2
+	panda_shape.shape = panda_capsule
+	panda_body.add_child(panda_shape)
 	panda = ActorVisual.new()
-	panda.position = Vector3(1.4, 0, 31.4)
-	add_child(panda)
+	panda.position = Vector3(0, -0.9, 0)
+	panda_body.add_child(panda)
 	panda.configure("panda", "Panda")
-	panda_prev = panda.global_position
+	add_child(panda_body)
+	panda_prev = panda_body.global_position
 
 
 func _ground() -> void:
@@ -543,6 +617,35 @@ func _dress_ruin() -> void:
 	add_child(Props.box(Vector3(2.4, 0.55, 1.2), Color("7a756c"), Vector3(73, 0.3, -112)))
 
 
+func _dress_aldermoor_road() -> void:
+	# Stone road east of the meadow fork, ending at a shut gate.
+	_path(70, -48, 158, -34, Color("d9d3c4"))
+	for x in [80, 100, 120, 140]:
+		add_child(Props.cylinder(0.12, 2.2, Color("f4f1ea"), Vector3(x, 1.1, -32)))
+		add_child(Props.box(Vector3(0.7, 1.1, 0.08), Color("2a4f86"), Vector3(x, 2.0, -32)))
+		add_child(Props.cylinder(0.12, 2.2, Color("f4f1ea"), Vector3(x, 1.1, -50)))
+		add_child(Props.box(Vector3(0.7, 1.1, 0.08), Color("2a4f86"), Vector3(x, 2.0, -50)))
+	# The gate itself. The city doors stay closed this chapter.
+	add_child(Props.cylinder(0.7, 4.2, Color("f7f4ee"), Vector3(156, 2.1, -48)))
+	add_child(Props.cylinder(0.7, 4.2, Color("f7f4ee"), Vector3(156, 2.1, -34)))
+	add_child(Props.box(Vector3(1.2, 3.2, 10.0), Color("e7e2d8"), Vector3(158.2, 1.6, -41)))
+	add_child(Props.box(Vector3(0.4, 1.6, 6.0), Color("c9a24a"), Vector3(157.4, 3.5, -41)))
+	add_child(Props.box(Vector3(14.0, 3.4, 1.2), Color("f4f1ea"), Vector3(162, 1.7, -30)))
+	add_child(Props.box(Vector3(14.0, 3.4, 1.2), Color("f4f1ea"), Vector3(162, 1.7, -52)))
+	add_child(Props.box(Vector3(1.0, 2.4, 8.0), Color("23406e"), Vector3(157.2, 2.6, -41)))
+	var quill := ActorVisual.new()
+	quill.position = quill_pos
+	add_child(quill)
+	quill.configure("lina", "Quill")
+	quill.scale = Vector3(0.92, 0.92, 0.92)
+	var ilvane := ActorVisual.new()
+	ilvane.position = ilvane_pos
+	add_child(ilvane)
+	ilvane.configure("lina", "Ilvane")
+	_sign(Vector3(74, 0, -30), "Aldermoor", "The stone road runs east to Aldermoor, the white city. The gate is ahead. The doors are shut. Seer Ilvane waits outside.")
+	_sign(Vector3(146, 0, -30), "Gate", "Aldermoor. White stone, blue banners, a leaf over three waves. Press F to speak with Ilvane. The city itself is not open yet.")
+
+
 func _dress_margins() -> void:
 	# A few trees in the unused east, so the empty room reads as woods waiting, not a hole.
 	for pos in [Vector3(140, 0, -24), Vector3(150, 0, -48), Vector3(142, 0, -64)]:
@@ -638,7 +741,7 @@ func _pickup(id: String, kind: String, pos: Vector3, note: String) -> void:
 
 
 func _on_pickup(body: Node, id: String) -> void:
-	if not active or body != hero:
+	if not active or (body != hero and body != panda_body):
 		return
 	if not pickups.has(id) or bool(pickups[id].taken):
 		return

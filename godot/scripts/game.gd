@@ -9,11 +9,11 @@ const HudScript = preload("res://scripts/hud.gd")
 enum Mode { TITLE, PLAY, TALK, BOOK, BATTLE, LEVELUP, DEFEAT, ENDING }
 
 const INTRO := [
-	"Lina: The wicklights live in the Lantern Grove. Small, warm, and awful at staying put.",
-	"Lina: Mosswick corked them into jars, up the Sealed Stair. He says a grove should be tidy.",
-	"Lina: Cinder mites wander the meadow. They do not come into camp. Touch one and the grass takes you to a clearing. Walk around them if you would rather see the hill.",
-	"Archer: We bring the lights home.",
-	"Panda: And we do not stand together in the red circles.",
+	"Lina: You already settled the fight between you. The pack still holds Grubbo's buckle, his comb, some coins, and the Mystery Shard.",
+	"Lina: Mosswick corked the wicklights on the way. That is early trouble, not the whole road.",
+	"Lina: East of the meadow, white stone runs to Aldermoor. The city doors are shut. Seer Ilvane waits at the gate.",
+	"Archer: We walk it together.",
+	"Panda: And we do not stand in the same red circle.",
 ]
 
 const ENDING := [
@@ -72,9 +72,11 @@ func _process(delta: float) -> void:
 		elif overworld and mode != Mode.TITLE:
 			hud.set_region(overworld.region_name())
 		if mode == Mode.PLAY:
-			var hint := "WASD walk  ·  Q/R or right-drag the camera  ·  F talk  ·  B spell book"
+			var hint := "P1 WASD archer. P2: plug in a PlayStation pad, left stick walks the panda. F talk. B book."
+			if overworld.coop_active():
+				hint = "Co-op. Archer WASD. Panda left stick. The camera frames you both. F talk. B book."
 			if party.pending_points > 0:
-				hint = "You have element points to place. Press B.   " + hint
+				hint = "Element points to place. Press B.  " + hint
 			hud.set_prompt(hint)
 
 
@@ -198,6 +200,21 @@ func _register_inputs() -> void:
 	_bind("book", KEY_B)
 	_bind("camera_left", KEY_Q)
 	_bind("camera_right", KEY_R)
+	_bind_joy("p2_confirm", JOY_BUTTON_A)
+	_bind_joy("p2_cancel", JOY_BUTTON_B)
+	_bind_joy("p2_attack", JOY_BUTTON_X)
+	_bind_joy("p2_spell", JOY_BUTTON_Y)
+	_bind_joy("p2_item", JOY_BUTTON_LEFT_SHOULDER)
+	_bind_joy("p2_defend", JOY_BUTTON_RIGHT_SHOULDER)
+
+
+func _bind_joy(action: String, button: JoyButton) -> void:
+	if not InputMap.has_action(action):
+		InputMap.add_action(action)
+	var ev := InputEventJoypadButton.new()
+	ev.device = 0
+	ev.button_index = button
+	InputMap.action_add_event(action, ev)
 
 
 func _bind(action: String, key: Key) -> void:
@@ -260,6 +277,7 @@ func _build_world() -> void:
 	overworld.lina_talk.connect(_talk_lina)
 	overworld.sign_read.connect(_on_sign)
 	overworld.pickup_found.connect(_on_pickup)
+	overworld.npc_talk.connect(_on_npc)
 
 	battle = BattleScript.new()
 	battle.name = "Battle"
@@ -273,7 +291,7 @@ func _show_title() -> void:
 	mode = Mode.TITLE
 	overworld.active = false
 	_apply_play_cam()
-	var body := "A short quest for Nick and Suni.\n\nThe archer and the panda share one life. The meadow, the grove, and the stair are wide enough to wander. Foes walk the grass. Camp stays quiet.\n\nTouch a foe and the world fades to a clearing. Then the blue circle, the spells, and the four elements.\n\nWASD to walk. Space to begin."
+	var body := "A short original quest for Nick and Suni.\n\nThe archer and the panda are already partners. The wicklights are trouble on the road to Aldermoor, not the end of it. Seven cursed orbs are only a whisper so far.\n\nOne keyboard walks the archer. A PlayStation controller, if you plug one in, walks the panda.\n\nWASD to walk. Space to begin."
 	_show_panel("Wicklight Grove", body, [{"id": "begin", "label": "Begin"}])
 
 
@@ -318,6 +336,22 @@ func _do_rest() -> void:
 	hud.toast("Life and spirit restored. Berries refilled.")
 	mode = Mode.PLAY
 	overworld.active = true
+
+
+func _on_npc(who: String) -> void:
+	if who == "quill":
+		_say([
+			"Peddler Quill: Berries, news, and no shards. I do not buy what came off Grubbo.",
+			"Peddler Quill: Ilvane at the white gate talks about seven cursed orbs. I have only met the road.",
+		], Callable())
+	elif who == "ilvane":
+		party.heard_orbs = true
+		_say([
+			"Ilvane: I am the seer. I will not take the Mystery Shard. It is not a coin.",
+			"Ilvane: There are seven cursed orbs. The shard is a whisper of one of them.",
+			"Ilvane: Keep it. The work is called Whispers of the Orb. Aldermoor studies the rest behind this gate.",
+			"Ilvane: The spirit panda can carry you when the road is open. Not through a shut door. Not today.",
+		], Callable())
 
 
 func _on_sign(text: String) -> void:
@@ -493,10 +527,16 @@ func _open_book() -> void:
 func _refresh_book() -> void:
 	var body := "Cast a spell and that element grows. Level 3 unlocks its stronger spell. A character level also gives points you can place.\n\n"
 	body += "Level %d    next at %d xp (%d/%d)\n" % [party.level, party.xp_to_next, party.xp, party.xp_to_next]
-	body += "Life %d/%d    Spirit %d/%d\n\n" % [party.hp, party.hp_max, party.mp, party.mp_max]
+	body += "Archer %d/%d    Panda %d/%d    Shared spirit %d/%d\n\n" % [party.archer_hp, party.archer_hp_max, party.panda_hp, party.panda_hp_max, party.mp, party.mp_max]
+	body += "Pack, from Grubbo: Gold-Coin Buckle, Moustache Comb, Mystery Shard, a handful of coins.\n"
+	if party.heard_orbs:
+		body += "Quest: Whispers of the Orb. Seven cursed orbs. The shard stays in the pack.\n"
+	else:
+		body += "The shard is unsolved. The Aldermoor road is east of the meadow.\n"
+	body += "The spirit panda is a mount for a later stretch of road.\n\n"
 	body += _element_status()
 	body += "\n\nArcher: Aimed Shot, a small long circle. Panda: Spin Kick, close and wide. The panda's lightning is Skyfang Bolt, a wind spell.\n"
-	body += "They share one life. A red circle hurts each body it catches.\n"
+	body += "Each of you has a life. Spirit is shared. A red circle hurts every body it catches.\n"
 	body += "Grove berries %d    Spirit sips %d" % [int(party.items.grove_berry), int(party.items.spirit_sip)]
 	var choices: Array = []
 	var index := 1
@@ -623,11 +663,20 @@ func _fade(target: float) -> void:
 
 func _update_camera(delta: float) -> void:
 	var target := Vector3(0, 1.2, 10)
+	var dist := cam_dist
+	var height := cam_height
 	if viewing_battle:
 		target = Vector3(0, 1.0, 0)
+	elif overworld and overworld.coop_active() and overworld.panda_body:
+		var a: Vector3 = overworld.hero.global_position
+		var b: Vector3 = overworld.panda_body.global_position
+		target = (a + b) * 0.5 + Vector3(0, 1.2, 0)
+		var sep := Vector2(a.x - b.x, a.z - b.z).length()
+		dist = clampf(12.5 + sep * 0.5, 12.5, 28.0)
+		height = clampf(8.2 + sep * 0.22, 8.2, 16.0)
 	elif overworld and overworld.hero:
 		target = overworld.hero.global_position + Vector3(0, 1.2, 0)
-	var desired := target + Vector3(sin(cam_yaw) * cam_dist, cam_height, cos(cam_yaw) * cam_dist)
+	var desired := target + Vector3(sin(cam_yaw) * dist, height, cos(cam_yaw) * dist)
 	if cam_snap:
 		camera.global_position = desired
 		cam_snap = false
