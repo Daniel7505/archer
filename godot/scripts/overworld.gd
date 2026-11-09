@@ -27,6 +27,7 @@ var wayside_pos := Vector3.ZERO
 var holt_pos := Vector3.ZERO
 var briar_built := false
 var wayside_built := false
+var road_points: Array[Vector3] = []
 var signs: Array = []
 var jars: Array = []
 var foes := {}
@@ -113,6 +114,7 @@ func build() -> void:
 	_scatter_valley()
 	_register_outer_fields()
 	_build_city_wall()
+	_build_main_road()
 	_make_hero()
 	_update_stream()
 	region_now = "camp"
@@ -130,18 +132,27 @@ func _physics_process(delta: float) -> void:
 	var look := Vector3(-sin(yaw), 0.0, -cos(yaw))
 	var right := Vector3(cos(yaw), 0.0, -sin(yaw))
 	var dir := right * input.x + look * -input.y
+	var wish := Vector3.ZERO
 	if dir.length() > 0.08:
 		dir = dir.normalized()
-		hero.velocity = dir * 6.8
+		wish = dir * WALK_SPEED
 		if hero_visual:
 			hero_visual.face_dir(dir)
 			hero_visual.set_moving(true)
-	else:
-		hero.velocity = Vector3.ZERO
-		if hero_visual:
-			hero_visual.set_moving(false)
+	elif hero_visual:
+		hero_visual.set_moving(false)
+	var on_ground := hero.global_position.y <= 0.92 and hero.velocity.y <= 0.1
+	var vy := 0.0 if on_ground else hero.velocity.y
+	if on_ground and Input.is_action_just_pressed("jump"):
+		vy = 8.6
+		on_ground = false
+	if not on_ground:
+		vy -= 32.0 * delta
+	hero.velocity = Vector3(wish.x, vy, wish.z)
 	hero.move_and_slide()
-	hero.global_position.y = 0.9
+	if hero.global_position.y <= 0.9 and hero.velocity.y <= 0.0:
+		hero.global_position.y = 0.9
+		hero.velocity.y = 0.0
 	if Pads.panda_uses_pad():
 		_steer_panda(delta)
 	else:
@@ -559,9 +570,7 @@ func _ground() -> void:
 	_tiles(128, -80, 160, -8, [Color("35563a"), Color("2e4c34")], 0.02)
 	_tiles(58, -168, 128, -78, [Color("9a9488"), Color("8b857c")], 0.02)
 	_tiles(58, -168, 160, -140, [Color("7d786f"), Color("726d66")], 0.02)
-	_path(-6, -78, 6, 12, Color("d2b48c"))
 	_path(-56, -22, 6, -14, Color("d2b48c"))
-	_path(6, -44, 70, -32, Color("c9a978"))
 	_path(78, -78, 90, -32, Color("6d5a3e"))
 	_path(70, -140, 104, -78, Color("b7aa96"))
 
@@ -742,8 +751,7 @@ func _dress_ruin() -> void:
 
 
 func _dress_aldermoor_road() -> void:
-	# Stone road east of the meadow fork, ending at a shut gate.
-	_path(70, -48, 158, -34, Color("d9d3c4"))
+	# Banners along the east road. The road surface itself is one ribbon, built later.
 	for x in [80, 100, 120, 140]:
 		_place_design(Props.cylinder(0.16, 3.4, Color("f4f1ea"), Vector3(x, 1.7, -32)))
 		_place_design(Props.box(Vector3(1.1, 1.6, 0.08), Color("2a4f86"), Vector3(x, 3.2, -32)))
@@ -1079,6 +1087,84 @@ func _build_city_wall() -> void:
 	add_child(_paint_box(Vector3(8.0, 8.0, 18.0), Color("23406e"), Vector3(zone2_end.x - 2.0, 5.0, zone2_road_z)))
 
 
+func _build_main_road() -> void:
+	# One pale ribbon, always drawn, from the yard to the shut wall.
+	var yard_z := 30.0 * ZONE1_SCALE
+	var gate := Vector3(0.0, 0.0, 18.0 * ZONE1_SCALE)
+	var quill_shoulder := Vector3(quill_pos.x, 0.0, quill_pos.z - 7.0)
+	var valley := Vector3(156.0 * ZONE1_SCALE, 0.0, zone2_road_z)
+	var before_briar := Vector3(briar_pos.x - 160.0, 0.0, zone2_road_z)
+	var briar_shoulder := Vector3(briar_pos.x, 0.0, briar_pos.z - 11.0)
+	var after_briar := Vector3(briar_pos.x + 160.0, 0.0, zone2_road_z)
+	var wayside_shoulder := Vector3(wayside_pos.x, 0.0, wayside_pos.z - 8.0)
+	var holt_shoulder := Vector3(holt_pos.x, 0.0, holt_pos.z - 4.0)
+	var wall := Vector3(zone2_end.x - 22.0, 0.0, zone2_road_z)
+	road_points = [
+		Vector3(0.0, 0.0, yard_z - 5.0),
+		gate,
+		quill_shoulder,
+		valley,
+		before_briar,
+		briar_shoulder,
+		after_briar,
+		wayside_shoulder,
+		holt_shoulder,
+		wall,
+	]
+	for i in road_points.size() - 1:
+		_lay_road(road_points[i], road_points[i + 1])
+
+
+func _lay_road(a: Vector3, b: Vector3) -> void:
+	var span := Vector2(b.x - a.x, b.z - a.z).length()
+	var steps := maxi(1, int(ceil(span / 40.0)))
+	for i in steps:
+		var p0 := a.lerp(b, float(i) / float(steps))
+		var p1 := a.lerp(b, float(i + 1) / float(steps))
+		_road_piece(p0, p1, 10.4, Color("8a6840"), 0.07)
+		_road_piece(p0, p1, 7.4, Color("f0e2c0"), 0.12)
+
+
+func _road_piece(a: Vector3, b: Vector3, width: float, color: Color, y: float) -> void:
+	var delta := Vector3(b.x - a.x, 0.0, b.z - a.z)
+	var length := delta.length()
+	if length < 0.2:
+		return
+	var holder := Node3D.new()
+	holder.position = Vector3((a.x + b.x) * 0.5, y, (a.z + b.z) * 0.5)
+	holder.basis = Basis.looking_at(delta.normalized(), Vector3.UP)
+	holder.add_child(_paint_box(Vector3(width, 0.08, length + 0.6), color, Vector3.ZERO))
+	add_child(holder)
+
+
+func road_near(world: Vector3, radius: float) -> bool:
+	var p := Vector2(world.x, world.z)
+	for i in road_points.size() - 1:
+		var a := Vector2(road_points[i].x, road_points[i].z)
+		var b := Vector2(road_points[i + 1].x, road_points[i + 1].z)
+		if _dist_to_segment(p, a, b) <= radius:
+			return true
+	return false
+
+
+func road_is_connected() -> bool:
+	if road_points.size() < 2:
+		return false
+	for i in road_points.size() - 1:
+		if road_points[i].distance_to(road_points[i + 1]) < 1.0:
+			return false
+	return true
+
+
+func _dist_to_segment(p: Vector2, a: Vector2, b: Vector2) -> float:
+	var ab := b - a
+	var len2 := ab.length_squared()
+	if len2 < 0.001:
+		return p.distance_to(a)
+	var t := clampf((p - a).dot(ab) / len2, 0.0, 1.0)
+	return p.distance_to(a + ab * t)
+
+
 func _flat_mat(color: Color) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
@@ -1102,8 +1188,6 @@ func _build_fields_detail(chunk: Dictionary) -> void:
 		if absf(tuft.z - zone2_road_z) < 9.0:
 			continue
 		_grass_world(tuft)
-	if absf(origin.z - zone2_road_z) < CHUNK:
-		chunk.detail.add_child(_paint_box(Vector3(CHUNK, 0.12, 14.0), Color("cbbfa6"), Vector3(origin.x, 0.06, zone2_road_z)))
 	if not briar_built and origin.distance_to(briar_pos) < 90.0:
 		briar_built = true
 		_hamlet(chunk, briar_pos)
@@ -1304,8 +1388,6 @@ func _ensure_chunk(key: Vector2i, sample: Vector3) -> Dictionary:
 	root.add_child(detail)
 	var center := _chunk_center(key)
 	root.add_child(_paint_box(Vector3(CHUNK, 0.16, CHUNK), _biome_color(center), Vector3(center.x, -0.12, center.z)))
-	if zone2_start != Vector3.ZERO and center.x > zone2_start.x - 20.0 and absf(center.z - zone2_road_z) < CHUNK * 0.6:
-		root.add_child(_paint_box(Vector3(CHUNK, 0.08, 14.0), Color("cbbfa6"), Vector3(center.x, 0.02, zone2_road_z)))
 	var far := Node3D.new()
 	far.name = "FarFoliage"
 	for i in 3:

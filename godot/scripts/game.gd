@@ -33,6 +33,9 @@ var sun: DirectionalLight3D
 var cam_yaw := 0.2
 var cam_dist := 11.5
 var cam_height := 8.0
+var cam_pitch := 0.58
+const PITCH_MIN := 0.12
+const PITCH_MAX := 1.05
 var cam_snap := true
 var viewing_battle := false
 var dialogue: Array = []
@@ -72,9 +75,9 @@ func _process(delta: float) -> void:
 		elif overworld and mode != Mode.TITLE:
 			hud.set_region(overworld.region_name())
 		if mode == Mode.PLAY:
-			var hint := "P1 WASD archer. P2: plug in a PlayStation pad, left stick walks the panda. F talk. B book."
+			var hint := "WASD walk. Space jumps. Right-drag looks around. F talk. B book."
 			if overworld.coop_active():
-				hint = "Co-op. Archer WASD. Panda left stick. The camera frames you both. F talk. B book."
+				hint = "Co-op. Archer WASD, Space jumps. Panda left stick. Right-drag looks around. F talk. B book."
 			if party.pending_points > 0:
 				hint = "Element points to place. Press B.  " + hint
 			hud.set_prompt(hint)
@@ -84,14 +87,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			cam_dist = clampf(cam_dist - 1.1, 7.0, 18.0)
-			cam_height = clampf(cam_height - 0.55, 5.0, 14.0)
 			return
 		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			cam_dist = clampf(cam_dist + 1.1, 7.0, 18.0)
-			cam_height = clampf(cam_height + 0.55, 5.0, 14.0)
 			return
 	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
 		cam_yaw -= event.relative.x * 0.006
+		nudge_camera_pitch(event.relative.y * 0.004)
 		return
 	if event is InputEventKey and event.echo:
 		return
@@ -194,6 +196,7 @@ func _register_inputs() -> void:
 	_bind("move_right", KEY_RIGHT)
 	_bind("confirm", KEY_SPACE)
 	_bind("confirm", KEY_ENTER)
+	_bind("jump", KEY_SPACE)
 	_bind("confirm", KEY_KP_ENTER)
 	_bind("cancel", KEY_ESCAPE)
 	_bind("interact", KEY_F)
@@ -648,6 +651,10 @@ func _panel_number(event: InputEvent) -> void:
 		_on_choice(str(panel_ids[index]))
 
 
+func nudge_camera_pitch(amount: float) -> void:
+	cam_pitch = clampf(cam_pitch + amount, PITCH_MIN, PITCH_MAX)
+
+
 func _apply_battle_cam() -> void:
 	cam_dist = 15.5
 	cam_height = 11.5
@@ -676,7 +683,6 @@ func _fade(target: float) -> void:
 func _update_camera(delta: float) -> void:
 	var target := Vector3(0, 1.2, 10)
 	var dist := cam_dist
-	var height := cam_height
 	if viewing_battle:
 		target = Vector3(0, 1.0, 0)
 	elif overworld and overworld.coop_active() and overworld.panda_body:
@@ -685,10 +691,14 @@ func _update_camera(delta: float) -> void:
 		target = (a + b) * 0.5 + Vector3(0, 1.2, 0)
 		var sep := Vector2(a.x - b.x, a.z - b.z).length()
 		dist = clampf(12.5 + sep * 0.5, 12.5, 28.0)
-		height = clampf(8.2 + sep * 0.22, 8.2, 16.0)
 	elif overworld and overworld.hero:
 		target = overworld.hero.global_position + Vector3(0, 1.2, 0)
-	var desired := target + Vector3(sin(cam_yaw) * dist, height, cos(cam_yaw) * dist)
+	var elev := clampf(cam_pitch, PITCH_MIN, PITCH_MAX)
+	var horiz := cos(elev) * dist
+	var vert := sin(elev) * dist
+	if viewing_battle:
+		vert = maxf(vert, 4.0)
+	var desired := target + Vector3(sin(cam_yaw) * horiz, vert, cos(cam_yaw) * horiz)
 	if cam_snap:
 		camera.global_position = desired
 		cam_snap = false

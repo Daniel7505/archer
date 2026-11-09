@@ -165,6 +165,23 @@ func _scene() -> bool:
 	ok = check(game.overworld.awake_chunk_count() * 4 < game.overworld.chunk_count(), "most chunks are not simulated") and ok
 	ok = check(game.overworld.region_name() == "Bramblewick Camp", "camp is named") and ok
 	ok = check(game.overworld.hero.global_position.distance_to(game.overworld.lina_pos) < 8.0, "spawn stands in Lina's yard") and ok
+	ok = check(game.overworld.road_is_connected(), "the road is one connected path") and ok
+	ok = check(game.overworld.road_near(game.overworld.hero.global_position, 18.0), "the road is visible from camp") and ok
+	ok = check(game.overworld.road_near(game.overworld.quill_pos, 16.0), "the road passes Quill's stall") and ok
+	ok = check(game.overworld.road_near(game.overworld.ilvane_pos, 28.0), "the road passes the valley gate") and ok
+	ok = check(game.overworld.road_near(game.overworld.briar_pos, 20.0), "the road passes Briarwell") and ok
+	ok = check(game.overworld.road_near(game.overworld.wayside_pos, 18.0), "the road passes Wayside Camp") and ok
+	ok = check(game.overworld.road_near(game.overworld.holt_pos, 16.0), "the road passes Holt") and ok
+	ok = check(game.overworld.road_near(game.overworld.zone2_end, 36.0), "the road reaches the shut wall") and ok
+	var pitch_low: float = game.cam_pitch
+	game.nudge_camera_pitch(-2.0)
+	ok = check(is_equal_approx(game.cam_pitch, game.PITCH_MIN), "the camera pitch will not go through the ground") and ok
+	game.nudge_camera_pitch(3.0)
+	ok = check(is_equal_approx(game.cam_pitch, game.PITCH_MAX), "the camera pitch will not flip overhead") and ok
+	game.cam_pitch = pitch_low
+	game.nudge_camera_pitch(0.2)
+	ok = check(game.cam_pitch > pitch_low and game.cam_pitch < game.PITCH_MAX, "the camera can pitch between the clamps") and ok
+	game.cam_pitch = pitch_low
 	ok = check(game.overworld.count_foes("camp") == 0, "camp has no wandering foes") and ok
 	ok = check(game.overworld.count_foes("meadow") >= 4, "the meadow has visible wanderers") and ok
 	ok = check(game.overworld.foe_visible("lurker") and game.overworld.foe_visible("mosswick"), "the lurker and Mosswick stand on the map") and ok
@@ -250,6 +267,34 @@ func _scene() -> bool:
 	ok = check(not game.overworld.foe_visible("holt"), "Holt stays gone after leaving the fields and coming back") and ok
 	game.overworld.place(Vector3(0, 0, -30))
 	ok = check(game.overworld.foe_visible("mite_1"), "ordinary meadow foes still return when their region does") and ok
+	var space_jumps := false
+	var space_confirms := false
+	for ev in InputMap.action_get_events("jump"):
+		if ev is InputEventKey and ev.physical_keycode == KEY_SPACE:
+			space_jumps = true
+	for ev in InputMap.action_get_events("confirm"):
+		if ev is InputEventKey and ev.physical_keycode == KEY_SPACE:
+			space_confirms = true
+	ok = check(space_jumps and space_confirms, "Space jumps, and still confirms talks and battles") and ok
+	game.overworld.place(Vector3(0, 0, 30))
+	game.mode = game.Mode.PLAY
+	game.overworld.active = true
+	var y0: float = game.overworld.hero.global_position.y
+	Input.action_press("jump")
+	await physics_frame
+	Input.action_release("jump")
+	var peak := y0
+	var landed := false
+	for _step in 50:
+		await physics_frame
+		var y: float = game.overworld.hero.global_position.y
+		if y > peak:
+			peak = y
+		if peak > y0 + 0.45 and absf(y - y0) < 0.05:
+			landed = true
+			break
+	ok = check(peak > y0 + 0.45, "Space lifts the archer off the ground") and ok
+	ok = check(landed, "the archer comes back down") and ok
 	return ok
 
 

@@ -26,7 +26,7 @@ Bramblewick Camp, the meadow, the grove, and the stair are the opening wilds. Mo
 
 ## How to play
 
-You start at Bramblewick Camp. Lina keeps the tea, and nothing wanders there. North is the Golden Meadow, then the Lantern Grove and the Sealed Stair. East, past the meadow fork, is the Aldermoor road, and past the valley gate are the outer fields. You can leave the path. Lamb Hill, Pebble Creek, the Jar Nook, and Broken Landing are optional. Briarwell is a small cluster of roofs partway to the city wall.
+You start at Bramblewick Camp. A pale stone road leaves the yard and runs north, then east. Follow it. It passes Quill's stall, the valley gate, Briarwell, Wayside Camp, and Holt, and it ends at Aldermoor's shut wall. Lina keeps the tea, and nothing wanders in the yard. North of camp is the Golden Meadow, then the Lantern Grove and the Sealed Stair. You can leave the path. Lamb Hill, Pebble Creek, the Jar Nook, and Broken Landing are optional. Briarwell is a small cluster of roofs partway to the city wall.
 
 Each of them has a **life**. **Spirit is shared.** A red circle hurts every body standing in it. Dewmend heals each of you inside it, and a little more when you stand together. If one of you falls, the other can still act and can heal them. If both fall, the fight is lost.
 
@@ -46,11 +46,12 @@ With no controller plugged in, the keyboard walks the archer and the panda follo
 |---|---|
 | W A S D or arrows | Walk the archer. In a fight, walk the blue circle |
 | Mouse | Aim a spell or shot, then click |
-| Q and R | Turn the camera. Right-drag does it too |
+| Q and R, or right-drag | Turn the camera left and right. Right-drag also looks up and down |
 | Mouse wheel | Zoom |
 | F | Talk to someone at a stop, or read a sign |
 | B | Spell book, the pack, and element points |
-| Space or Enter | Confirm. 1 attack, 2 spell, 3 item, 4 defend |
+| Space | Jump while walking. In a talk or a fight, Space still confirms |
+| Enter | Confirm, begin, and advance a talk. 1 attack, 2 spell, 3 item, 4 defend |
 | Esc | Back, or close the spell book |
 
 ### Two players on one computer
