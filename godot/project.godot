@@ -1,0 +1,30 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; but this is the Godot 4 project Wicklight Grove opens from.
+
+config_version=5
+
+[application]
+
+config/name="Wicklight Grove"
+config/description="A short original quest for Nick and Suni. The archer and the panda share one life."
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[debug]
+
+gdscript/warnings/inference_on_variant=0
+gdscript/warnings/native_method_override=0
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+anti_aliasing/quality/msaa_3d=2
