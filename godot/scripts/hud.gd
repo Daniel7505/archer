@@ -39,7 +39,6 @@ func _build() -> void:
 	fade.color = Color(0, 0, 0, 0)
 	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fade.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(fade)
 
 	var left := PanelContainer.new()
 	left.offset_left = 16
@@ -168,6 +167,7 @@ func _build() -> void:
 	toast_label.offset_bottom = 120
 	toast_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(toast_label)
+	add_child(fade)
 
 
 func _add_element_row(id: String) -> Dictionary:

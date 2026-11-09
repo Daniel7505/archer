@@ -129,6 +129,11 @@ func use_item(id: String) -> String:
 	return "Used."
 
 
+func add_item(id: String, amount: int) -> int:
+	items[id] = int(items.get(id, 0)) + amount
+	return int(items[id])
+
+
 func full_rest() -> void:
 	hp = hp_max
 	mp = mp_max

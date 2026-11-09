@@ -140,19 +140,30 @@ func _scene() -> bool:
 	ok = check(game.get_node_or_null("HUD") != null, "hud exists") and ok
 	game.debug_skip_title()
 	ok = check(game.overworld.region_name() == "Bramblewick Camp", "camp is named") and ok
-	game.overworld.place(Vector3(0, 0, -11))
+	ok = check(game.overworld.count_foes("camp") == 0, "camp has no wandering foes") and ok
+	ok = check(game.overworld.count_foes("meadow") >= 4, "the meadow has visible wanderers") and ok
+	ok = check(game.overworld.foe_visible("lurker") and game.overworld.foe_visible("mosswick"), "the lurker and Mosswick stand on the map") and ok
+	game.overworld.place(Vector3(0, 0, -30))
 	ok = check(game.overworld.region_name() == "Golden Meadow", "meadow is named") and ok
-	game.overworld.place(Vector3(27, 0, -19))
+	game.overworld.place(Vector3(-46, 0, -18))
+	ok = check(game.overworld.region_name() == "Lamb Hill", "the hill overlook is off the main road") and ok
+	game.overworld.place(Vector3(88, 0, -40))
 	ok = check(game.overworld.region_name() == "Lantern Grove", "grove is named") and ok
-	game.overworld.place(Vector3(27, 0, -46))
+	game.overworld.place(Vector3(90, 0, -110))
 	ok = check(game.overworld.region_name() == "The Sealed Stair", "stair is named") and ok
-	ok = check(game.overworld.gate_grove.visible, "grove gate starts shut") and ok
-	game.party.cleared.meadow = true
-	game.overworld.refresh_gates()
-	ok = check(not game.overworld.gate_grove.visible, "clearing the meadow opens the grove") and ok
-	game.party.cleared.meadow = false
-	game.overworld.refresh_gates()
-	game.overworld.place(Vector3(0, 0, 12))
+	game.debug_touch("mite_1")
+	for _step in 8:
+		await process_frame
+	ok = check(game.battle.visible and not game.overworld.visible, "touching a map foe fades into a battle field") and ok
+	ok = check(game.battle.fighter("mite_a") != null, "the clearing uses the meadow fight") and ok
+	game.debug_finish_battle()
+	for _step in 8:
+		await process_frame
+	ok = check(game.overworld.visible and not game.battle.visible, "winning returns to the overworld") and ok
+	ok = check(not game.overworld.foe_visible("mite_1"), "the beaten foe is gone") and ok
+	game.overworld.place(Vector3(0, 0, 30))
+	game.overworld.place(Vector3(0, 0, -30))
+	ok = check(game.overworld.foe_visible("mite_1"), "leaving the meadow and coming back brings the foe back") and ok
 	game.debug_battle("meadow")
 	await process_frame
 	ok = check(game.battle.fighter("panda") != null, "story battle has the panda") and ok

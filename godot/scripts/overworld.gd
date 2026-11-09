@@ -4,10 +4,10 @@ const ActorVisual = preload("res://scripts/actor_visual.gd")
 const Props = preload("res://scripts/props.gd")
 const Circle = preload("res://scripts/circle.gd")
 
-signal encounter_hit(id: String)
+signal encounter_hit(battle_id: String, foe_id: String)
 signal lina_talk
-signal gate_msg(which: String)
 signal sign_read(text: String)
+signal pickup_found(kind: String, note: String)
 
 var party = null
 var active := false
@@ -16,79 +16,79 @@ var hero: CharacterBody3D
 var hero_visual: Node3D
 var panda: Node3D
 var panda_prev := Vector3.ZERO
-var lina_pos := Vector3(4.2, 0, 11.6)
-var gate_grove: StaticBody3D
-var gate_ruin: StaticBody3D
-var triggers := {}
-var markers := {}
+var lina_pos := Vector3(8.0, 0.0, 28.0)
 var signs: Array = []
 var jars: Array = []
+var foes := {}
+var pickups := {}
+var region_now := "camp"
+var left_regions := {}
 
-const WALLS := [
-	[-8, 16, 8, 16],
-	[8, 16, 8, 6],
-	[8, 6, 14, 6],
-	[14, 6, 14, -12],
-	[14, -18, 14, -22],
-	[14, -22, -14, -22],
-	[-14, -22, -14, 0],
-	[-14, 0, -8, 0],
-	[-8, 0, -8, 16],
-	[-8, 6, -3, 6],
-	[3, 6, 8, 6],
-	[-3, 0, -3, 6],
-	[3, 0, 3, 6],
-	[14, -12, 18, -12],
-	[14, -18, 18, -18],
-	[14, -8, 18, -8],
-	[14, -22, 18, -22],
-	[18, -8, 36, -8],
-	[36, -8, 36, -30],
-	[36, -30, 28, -30],
-	[22, -30, 18, -30],
-	[18, -30, 18, -18],
-	[18, -12, 18, -8],
-	[22, -30, 22, -38],
-	[28, -30, 28, -38],
-	[18, -30, 18, -54],
-	[18, -54, 36, -54],
-	[36, -54, 36, -30],
-	[18, -38, 22, -38],
-	[28, -38, 36, -38],
+const TILE := 8.0
+
+# Map foes. Camp is intentionally absent.
+const FOE_TABLE := [
+	{"id": "mite_1", "region": "meadow", "battle": "mite", "kind": "mite", "name": "Cinder Mite", "scale": 1.0, "special": false,
+		"at": [16, -26], "patrol": [[16, -26], [28, -26], [28, -38], [16, -38]]},
+	{"id": "mite_2", "region": "meadow", "battle": "mite", "kind": "mite", "name": "Cinder Mite", "scale": 1.0, "special": false,
+		"at": [-22, -30], "patrol": [[-22, -30], [-34, -30], [-34, -44], [-22, -44]]},
+	{"id": "mite_3", "region": "meadow", "battle": "mite", "kind": "mite", "name": "Cinder Mite", "scale": 1.0, "special": false,
+		"at": [8, -54], "patrol": [[8, -54], [8, -66], [-6, -66], [-6, -54]]},
+	{"id": "mite_4", "region": "meadow", "battle": "mite", "kind": "mite", "name": "Cinder Mite", "scale": 1.0, "special": false,
+		"at": [34, -58], "patrol": [[34, -58], [46, -58], [46, -70], [34, -70]]},
+	{"id": "mite_5", "region": "meadow", "battle": "mite", "kind": "mite", "name": "Cinder Mite", "scale": 1.0, "special": false,
+		"at": [-30, -62], "patrol": [[-30, -62], [-18, -62], [-18, -74], [-30, -74]]},
+	{"id": "sprig_1", "region": "grove", "battle": "sprig", "kind": "lurker", "name": "Thicket Sprig", "scale": 0.82, "special": false,
+		"at": [78, -28], "patrol": [[78, -28], [92, -28], [92, -40], [78, -40]]},
+	{"id": "sprig_2", "region": "grove", "battle": "sprig", "kind": "lurker", "name": "Thicket Sprig", "scale": 0.82, "special": false,
+		"at": [104, -48], "patrol": [[104, -48], [112, -48], [112, -60], [104, -60]]},
+	{"id": "sprig_3", "region": "grove", "battle": "sprig", "kind": "lurker", "name": "Thicket Sprig", "scale": 0.82, "special": false,
+		"at": [84, -68], "patrol": [[84, -68], [96, -68], [96, -58], [84, -58]]},
+	{"id": "lurker", "region": "grove", "battle": "lurker", "kind": "lurker", "name": "Thicket Lurker", "scale": 1.35, "special": true,
+		"at": [72, -56], "patrol": [[72, -56], [80, -52], [72, -48], [64, -52]]},
+	{"id": "pebble_1", "region": "stair", "battle": "pebble", "kind": "mite", "name": "Kiln Pebble", "scale": 0.9, "special": false,
+		"at": [100, -96], "patrol": [[100, -96], [112, -96], [112, -108], [100, -108]]},
+	{"id": "pebble_2", "region": "stair", "battle": "pebble", "kind": "mite", "name": "Kiln Pebble", "scale": 0.9, "special": false,
+		"at": [76, -112], "patrol": [[76, -112], [76, -124], [88, -124], [88, -112]]},
+	{"id": "mosswick", "region": "stair", "battle": "stair", "kind": "boss", "name": "Mosswick", "scale": 1.55, "special": true,
+		"at": [92, -128], "patrol": [[92, -128]]},
 ]
 
 
 func build() -> void:
 	_ground()
-	for segment in WALLS:
-		var color := Color("6f8f4e")
-		if segment[1] < -32 or segment[3] < -32 or (segment[0] > 17 and segment[1] < -29):
-			color = Color("9a948c")
-		elif segment[0] > 16 or segment[2] > 16:
-			color = Color("2f5a38")
-		_wall(segment[0], segment[1], segment[2], segment[3], color)
+	_hedges()
 	_dress_camp()
 	_dress_meadow()
 	_dress_grove()
 	_dress_ruin()
+	_dress_margins()
 	_make_hero()
-	_make_encounter("meadow", Vector3(0, 0, -11), "the grass is cracking", Color(0.95, 0.55, 0.25, 0.38))
-	_make_encounter("grove", Vector3(27, 0, -19), "a dim jar-light", Color(0.45, 0.75, 0.55, 0.38))
-	_make_encounter("stair", Vector3(27, 0, -46), "Mosswick waits", Color(0.85, 0.45, 0.35, 0.4))
-	gate_grove = _gate(Vector3(16.0, 0.7, -15.0), Vector3(3.4, 1.4, 6.3))
-	gate_ruin = _gate(Vector3(25.0, 0.7, -34.0), Vector3(7.0, 1.4, 3.2))
-	refresh_gates()
-	_sign(Vector3(0, 0, 7.4), "Camp", "Bramblewick Camp. Lina keeps the tea. Press F beside her.")
-	_sign(Vector3(0, 0, -1.2), "Meadow", "Golden Meadow. Something in the grass is cracking.")
-	_sign(Vector3(20, 0, -14), "Grove", "Lantern Grove. The jars in the branches are still shut.")
-	_sign(Vector3(25, 0, -40), "Stair", "The Sealed Stair. Mosswick thinks lights belong in jars.")
+	for spec in FOE_TABLE:
+		_spawn_foe(spec)
+	_pickup("berry_hill", "berry", Vector3(-48, 0, -16), "")
+	_pickup("note_hill", "note", Vector3(-44, 0, -22), "A flat stone on Lamb Hill: the wicklights used to race the wind up here. Lina says the hill never won.")
+	_pickup("sip_creek", "sip", Vector3(36, 0, -2), "")
+	_pickup("note_creek", "note", Vector3(26, 0, 2), "Pebble Creek is warm even in the morning. It is not on the way to anything. That is the nice part.")
+	_pickup("berry_nook", "berry", Vector3(112, 0, -16), "")
+	_pickup("note_nook", "note", Vector3(106, 0, -20), "Bark scratch in the Jar Nook: Mosswick counts jars the way other people count sheep. He is not cruel. He is unfinished.")
+	_pickup("sip_landing", "sip", Vector3(70, 0, -114), "")
+	_pickup("note_landing", "note", Vector3(74, 0, -108), "Broken Landing. The stair was longer once. The rest of it is still just stone.")
+	_sign(Vector3(0, 0, 16), "Meadow", "Golden Meadow is north. The mites wander in the grass. They do not cross into camp. Walk around them, or let one take you to a clearing.")
+	_sign(Vector3(0, 0, -40), "Fork", "The east road finds the Lantern Grove. West is only Lamb Hill, and the view.")
+	_sign(Vector3(58, 0, -36), "Grove", "Lantern Grove. Smaller things wander. The tall lurker keeps to the north path, and you can walk around it.")
+	_sign(Vector3(92, 0, -84), "Stair", "The Sealed Stair. Mosswick is the one sitting on the jar. The kiln pebbles are only pebbles.")
+	_sign(Vector3(136, 0, -40), "Later", "The east trees are still empty. There is room to grow, later.")
+	region_now = "camp"
 
 
 func _physics_process(delta: float) -> void:
 	if hero == null:
 		return
+	poll_region()
 	if not active:
 		hero.velocity = Vector3.ZERO
+		_tick_foes(0.0)
 		return
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var look := Vector3(-sin(yaw), 0.0, -cos(yaw))
@@ -96,7 +96,7 @@ func _physics_process(delta: float) -> void:
 	var dir := right * input.x + look * -input.y
 	if dir.length() > 0.08:
 		dir = dir.normalized()
-		hero.velocity = dir * 5.2
+		hero.velocity = dir * 6.8
 		if hero_visual:
 			hero_visual.face_dir(dir)
 			hero_visual.set_moving(true)
@@ -107,21 +107,43 @@ func _physics_process(delta: float) -> void:
 	hero.move_and_slide()
 	hero.global_position.y = 0.9
 	_follow_panda(delta)
+	_tick_foes(delta)
+
+
+func region_id() -> String:
+	if hero == null:
+		return "camp"
+	var p := hero.global_position
+	if p.x > 58.0 and p.z < -78.0:
+		return "stair"
+	if p.x > 58.0:
+		return "grove"
+	if p.z > 12.0:
+		return "camp"
+	return "meadow"
 
 
 func region_name() -> String:
 	if hero == null:
 		return ""
 	var p := hero.global_position
-	if p.z > 5.5 and p.x < 12.0:
-		return "Bramblewick Camp"
-	if p.z < -36.0:
-		return "The Sealed Stair"
-	if p.x > 17.0:
-		return "Lantern Grove"
-	if p.z < 1.0:
-		return "Golden Meadow"
-	return "The path between"
+	if p.x < -40.0 and p.z < 6.0 and p.z > -40.0:
+		return "Lamb Hill"
+	if p.x > 18.0 and p.x < 50.0 and p.z > -12.0 and p.z < 10.0:
+		return "Pebble Creek"
+	if p.x > 100.0 and p.z > -30.0 and p.z < -6.0 and p.x < 124.0:
+		return "Jar Nook"
+	if p.x > 62.0 and p.x < 82.0 and p.z < -100.0 and p.z > -126.0:
+		return "Broken Landing"
+	match region_id():
+		"camp":
+			return "Bramblewick Camp"
+		"grove":
+			return "Lantern Grove"
+		"stair":
+			return "The Sealed Stair"
+		_:
+			return "Golden Meadow"
 
 
 func place(pos: Vector3) -> void:
@@ -132,59 +154,71 @@ func place(pos: Vector3) -> void:
 	if panda:
 		panda.global_position = hero.global_position + Vector3(1.2, 0, 1.3)
 		panda_prev = panda.global_position
+	poll_region()
 
 
-func nudge_out(id: String) -> void:
-	if not triggers.has(id) or hero == null:
+func poll_region() -> void:
+	var region := region_id()
+	if region == region_now:
 		return
-	var area: Node3D = triggers[id]
-	var away := hero.global_position - area.global_position
+	if region_now != "camp":
+		left_regions[region_now] = true
+	region_now = region
+	if region != "camp" and bool(left_regions.get(region, false)):
+		_respawn_region(region)
+		left_regions[region] = false
+
+
+func count_foes(region: String) -> int:
+	var n := 0
+	for id in foes.keys():
+		if str(foes[id].region) == region:
+			n += 1
+	return n
+
+
+func foe_visible(id: String) -> bool:
+	if not foes.has(id):
+		return false
+	var node: Node3D = foes[id].node
+	return node.visible and not bool(foes[id].defeated)
+
+
+func nudge_from_foe(foe_id: String) -> void:
+	if hero == null or not foes.has(foe_id):
+		return
+	var node: Node3D = foes[foe_id].node
+	var away: Vector3 = hero.global_position - node.global_position
 	away.y = 0.0
 	if away.length() < 0.2:
 		away = Vector3(0, 0, 1)
-	hero.global_position += away.normalized() * 3.2
+	hero.global_position += away.normalized() * 3.4
 	hero.global_position.y = 0.9
 
 
-func set_trigger_enabled(id: String, enabled: bool) -> void:
-	if triggers.has(id) and is_instance_valid(triggers[id]):
-		triggers[id].monitoring = enabled
-
-
-func refresh_gates() -> void:
-	var meadow_clear := party != null and bool(party.cleared.get("meadow", false))
-	var grove_clear := party != null and bool(party.cleared.get("grove", false))
-	_set_open(gate_grove, meadow_clear)
-	_set_open(gate_ruin, grove_clear)
-
-
-func on_battle_won(id: String) -> void:
-	if triggers.has(id) and is_instance_valid(triggers[id]):
-		triggers[id].queue_free()
-		triggers.erase(id)
-	for key in [id, id + "_label"]:
-		if markers.has(key) and is_instance_valid(markers[key]):
-			markers[key].queue_free()
-			markers.erase(key)
-	refresh_gates()
+func on_foe_beaten(foe_id: String) -> void:
+	if not foes.has(foe_id):
+		return
+	var foe: Dictionary = foes[foe_id]
+	foe.defeated = true
+	if str(foe.battle) == "stair":
+		foe.gone_for_good = true
+	var node: Node3D = foe.node
+	node.visible = false
+	var area: Area3D = foe.area
+	area.monitoring = false
 
 
 func interact() -> void:
 	if hero == null:
 		return
 	var p := hero.global_position
-	if Vector2(p.x - lina_pos.x, p.z - lina_pos.z).length() < 2.5:
+	if Vector2(p.x - lina_pos.x, p.z - lina_pos.z).length() < 2.8:
 		lina_talk.emit()
-		return
-	if gate_grove and gate_grove.visible and _near(gate_grove, p):
-		gate_msg.emit("grove")
-		return
-	if gate_ruin and gate_ruin.visible and _near(gate_ruin, p):
-		gate_msg.emit("ruin")
 		return
 	for sign in signs:
 		var s: Vector3 = sign.pos
-		if Vector2(p.x - s.x, p.z - s.z).length() < 2.3:
+		if Vector2(p.x - s.x, p.z - s.z).length() < 2.6:
 			sign_read.emit(sign.text)
 			return
 
@@ -211,15 +245,132 @@ func play_thanks() -> void:
 		panda.bow()
 
 
+func _respawn_region(region: String) -> void:
+	for id in foes.keys():
+		var foe: Dictionary = foes[id]
+		if str(foe.region) != region:
+			continue
+		if bool(foe.get("gone_for_good", false)):
+			continue
+		foe.defeated = false
+		foe.wait = 0.4
+		foe.leg = 0
+		var node: Node3D = foe.node
+		var home: Vector3 = foe.home
+		node.position = home
+		node.visible = true
+		var area: Area3D = foe.area
+		area.monitoring = true
+
+
+func _tick_foes(delta: float) -> void:
+	if delta <= 0.0:
+		return
+	for id in foes.keys():
+		var foe: Dictionary = foes[id]
+		if bool(foe.defeated):
+			continue
+		var points: Array = foe.points
+		var visual: Node3D = foe.visual
+		if points.size() < 2:
+			if visual.has_method("set_moving"):
+				visual.set_moving(false)
+			continue
+		var wait := float(foe.wait)
+		if wait > 0.0:
+			foe.wait = wait - delta
+			if visual.has_method("set_moving"):
+				visual.set_moving(false)
+			continue
+		var node: Node3D = foe.node
+		var leg := int(foe.leg)
+		var target: Vector3 = points[leg]
+		var to: Vector3 = target - node.position
+		to.y = 0.0
+		var step := 1.65 * delta
+		if to.length() <= step:
+			node.position = Vector3(target.x, 0.0, target.z)
+			foe.leg = (leg + 1) % points.size()
+			foe.wait = 0.85
+			if visual.has_method("set_moving"):
+				visual.set_moving(false)
+		else:
+			var dir: Vector3 = to.normalized()
+			node.position += dir * step
+			if visual.has_method("face_dir"):
+				visual.face_dir(dir)
+			if visual.has_method("set_moving"):
+				visual.set_moving(true)
+
+
+func _spawn_foe(spec: Dictionary) -> void:
+	var root := Node3D.new()
+	root.name = str(spec.id)
+	var at: Array = spec.at
+	root.position = Vector3(at[0], 0.0, at[1])
+	var visual := ActorVisual.new()
+	root.add_child(visual)
+	visual.configure(str(spec.kind), str(spec.name))
+	var scl := float(spec.scale)
+	root.scale = Vector3(scl, scl, scl)
+	var area := Area3D.new()
+	area.collision_layer = 0
+	area.collision_mask = 1
+	area.monitorable = false
+	var shape := CollisionShape3D.new()
+	var cyl := CylinderShape3D.new()
+	cyl.radius = 1.15
+	cyl.height = 2.0
+	shape.shape = cyl
+	shape.position = Vector3(0, 1.0, 0)
+	area.add_child(shape)
+	root.add_child(area)
+	var foe_id := str(spec.id)
+	area.body_entered.connect(_on_foe_body.bind(foe_id))
+	if bool(spec.special):
+		var ring := Circle.new()
+		root.add_child(ring)
+		var tint := Color(0.85, 0.45, 0.25, 0.35) if str(spec.battle) == "lurker" else Color(0.75, 0.55, 0.85, 0.4)
+		ring.setup(tint)
+		ring.show_at(Vector3.ZERO, 2.1)
+	add_child(root)
+	var points: Array = []
+	for pair in spec.patrol:
+		points.append(Vector3(pair[0], 0.0, pair[1]))
+	foes[foe_id] = {
+		"id": foe_id,
+		"region": str(spec.region),
+		"battle": str(spec.battle),
+		"node": root,
+		"visual": visual,
+		"area": area,
+		"home": root.position,
+		"points": points,
+		"leg": 0,
+		"wait": 0.3,
+		"defeated": false,
+		"gone_for_good": false,
+	}
+
+
+func _on_foe_body(body: Node, foe_id: String) -> void:
+	if not active or body != hero:
+		return
+	if not foes.has(foe_id) or bool(foes[foe_id].defeated):
+		return
+	active = false
+	encounter_hit.emit(str(foes[foe_id].battle), foe_id)
+
+
 func _follow_panda(delta: float) -> void:
 	if panda == null or hero == null:
 		return
 	var side := hero.global_transform.basis.x
 	var back := hero.global_transform.basis.z
-	var target: Vector3 = hero.global_position + side * 1.15 + back * 1.25
+	var target: Vector3 = hero.global_position + side * 1.15 + back * 1.35
 	target.y = 0.0
 	panda.global_position = panda.global_position.lerp(target, 1.0 - exp(-5.0 * delta))
-	var step := panda.global_position - panda_prev
+	var step: Vector3 = panda.global_position - panda_prev
 	if step.length() > 0.03 and panda.has_method("face_dir"):
 		panda.face_dir(Vector3(step.x, 0, step.z))
 		panda.set_moving(true)
@@ -231,7 +382,7 @@ func _follow_panda(delta: float) -> void:
 func _make_hero() -> void:
 	hero = CharacterBody3D.new()
 	hero.name = "Hero"
-	hero.position = Vector3(0, 0.9, 12)
+	hero.position = Vector3(0, 0.9, 30)
 	var shape := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
 	capsule.radius = 0.38
@@ -244,69 +395,67 @@ func _make_hero() -> void:
 	hero_visual.configure("archer", "Archer")
 	add_child(hero)
 	panda = ActorVisual.new()
-	panda.position = Vector3(1.3, 0, 13.3)
+	panda.position = Vector3(1.4, 0, 31.4)
 	add_child(panda)
 	panda.configure("panda", "Panda")
 	panda_prev = panda.global_position
 
 
-func _make_encounter(id: String, pos: Vector3, caption: String, color: Color) -> void:
-	var area := Area3D.new()
-	area.position = pos
-	area.collision_layer = 0
-	area.collision_mask = 1
-	area.monitorable = false
-	var shape := CollisionShape3D.new()
-	var cyl := CylinderShape3D.new()
-	cyl.radius = 2.25
-	cyl.height = 2.0
-	shape.shape = cyl
-	shape.position = Vector3(0, 1.0, 0)
-	area.add_child(shape)
-	area.body_entered.connect(_on_body.bind(id))
-	add_child(area)
-	triggers[id] = area
-	var ring := Circle.new()
-	add_child(ring)
-	ring.setup(color)
-	ring.show_at(pos, 2.15)
-	markers[id] = ring
-	var label := Label3D.new()
-	label.text = caption
-	label.font_size = 28
-	label.pixel_size = 0.007
-	label.position = pos + Vector3(0, 1.6, 0)
-	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.outline_size = 6
-	label.modulate = Color("fff1d6")
-	add_child(label)
-	markers[id + "_label"] = label
-
-
-func _on_body(body: Node, id: String) -> void:
-	if not active or body != hero:
-		return
-	if party != null and bool(party.cleared.get(id, false)):
-		return
-	active = false
-	encounter_hit.emit(id)
-
-
 func _ground() -> void:
-	var big := Props.box(Vector3(140, 0.2, 140), Color("5d7a40"), Vector3(10, -0.16, -16))
+	var big := Props.box(Vector3(280, 0.3, 280), Color("4e6b3c"), Vector3(50, -0.2, -60))
 	big.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(big)
-	_patch(-8, 6, 8, 16, Color("a8845a"), 0.02)
-	_patch(-3, 0, 3, 6, Color("c2a36b"), 0.03)
-	_patch(-14, -22, 14, 0, Color("7ea354"), 0.02)
-	_patch(14, -18, 18, -12, Color("c2a36b"), 0.03)
-	_patch(18, -30, 36, -8, Color("3e6844"), 0.02)
-	_patch(22, -38, 28, -30, Color("b7aa90"), 0.03)
-	_patch(18, -54, 36, -38, Color("8f897f"), 0.02)
+	_tiles(-24, 12, 24, 46, [Color("c4a06a"), Color("b89260")], 0.02)
+	_tiles(-60, -80, 58, 12, [Color("7ea354"), Color("8fb862")], 0.02)
+	_tiles(18, -12, 52, 10, [Color("6aa8c4"), Color("7eb8d0")], 0.03)
+	_tiles(58, -80, 128, -8, [Color("3e6844"), Color("345c3c")], 0.02)
+	_tiles(128, -80, 160, -8, [Color("35563a"), Color("2e4c34")], 0.02)
+	_tiles(58, -168, 128, -78, [Color("9a9488"), Color("8b857c")], 0.02)
+	_tiles(58, -168, 160, -140, [Color("7d786f"), Color("726d66")], 0.02)
+	_path(-6, -78, 6, 12, Color("d2b48c"))
+	_path(-56, -22, 6, -14, Color("d2b48c"))
+	_path(6, -44, 70, -32, Color("c9a978"))
+	_path(78, -78, 90, -32, Color("6d5a3e"))
+	_path(70, -140, 104, -78, Color("b7aa96"))
+
+
+func _tiles(x0: float, z0: float, x1: float, z1: float, colors: Array, y: float) -> void:
+	var x := x0
+	var col := 0
+	while x < x1:
+		var z := z0
+		var row := 0
+		while z < z1:
+			var color: Color = colors[(col + row) % colors.size()]
+			var w := minf(TILE, x1 - x)
+			var d := minf(TILE, z1 - z)
+			_patch(x, z, x + w, z + d, color, y)
+			z += TILE
+			row += 1
+		x += TILE
+		col += 1
+
+
+func _path(x0: float, z0: float, x1: float, z1: float, color: Color) -> void:
+	_patch(x0, z0, x1, z1, color, 0.05)
+
+
+func _hedges() -> void:
+	var hedge := Color("6f8f4e")
+	var dark := Color("2f5a38")
+	var stone := Color("9a948c")
+	# Outer ring. The east and far north are empty on purpose.
+	_wall(-60, 46, 160, 46, hedge)
+	_wall(-60, -168, -60, 46, hedge)
+	_wall(160, -168, 160, 46, dark)
+	_wall(-60, -168, 160, -168, stone)
+	# Camp hedge, with a wide gate onto the meadow. Never locked.
+	_wall(-60, 12, -8, 12, hedge)
+	_wall(8, 12, 160, 12, hedge)
 
 
 func _patch(x0: float, z0: float, x1: float, z1: float, color: Color, y: float) -> void:
-	var size := Vector3(absf(x1 - x0), 0.05, absf(z1 - z0))
+	var size := Vector3(absf(x1 - x0), 0.06, absf(z1 - z0))
 	var pos := Vector3((x0 + x1) * 0.5, y, (z0 + z1) * 0.5)
 	var mesh := Props.box(size, color, pos)
 	mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -314,29 +463,14 @@ func _patch(x0: float, z0: float, x1: float, z1: float, color: Color, y: float) 
 
 
 func _wall(x1: float, z1: float, x2: float, z2: float, color: Color) -> void:
-	var mid := Vector3((x1 + x2) * 0.5, 0.62, (z1 + z2) * 0.5)
+	var mid := Vector3((x1 + x2) * 0.5, 0.7, (z1 + z2) * 0.5)
 	var sx := absf(x2 - x1)
 	var sz := absf(z2 - z1)
-	var size := Vector3(sx + 0.6, 1.24, 0.6) if sx >= sz else Vector3(0.6, 1.24, sz + 0.6)
+	var size := Vector3(sx + 0.8, 1.35, 0.8) if sx >= sz else Vector3(0.8, 1.35, sz + 0.8)
 	var mesh := Props.box(size, color, mid)
 	mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mesh)
 	_static_box(mid, size)
-
-
-func _gate(pos: Vector3, size: Vector3) -> StaticBody3D:
-	var body := _static_box(pos, size)
-	body.add_child(Props.box(size, Color("3c5a32"), Vector3.ZERO))
-	return body
-
-
-func _set_open(gate: StaticBody3D, open: bool) -> void:
-	if gate == null:
-		return
-	gate.visible = not open
-	var shape := gate.get_node_or_null("CollisionShape3D")
-	if shape:
-		shape.set("disabled", open)
 
 
 func _static_box(pos: Vector3, size: Vector3) -> StaticBody3D:
@@ -356,60 +490,75 @@ func _dress_camp() -> void:
 	lina.position = lina_pos
 	add_child(lina)
 	lina.configure("lina", "Lina")
-	add_child(Props.cylinder(0.16, 0.45, Color("4a3424"), Vector3(-2.2, 0.22, 13.2)))
-	add_child(Props.sphere(0.18, Color("ff8a3c"), Vector3(-2.2, 0.5, 13.2), 2.2))
+	add_child(Props.cylinder(0.18, 0.5, Color("4a3424"), Vector3(-6.0, 0.25, 32.0)))
+	add_child(Props.sphere(0.22, Color("ff8a3c"), Vector3(-6.0, 0.55, 32.0), 2.2))
 	var fire := OmniLight3D.new()
-	fire.position = Vector3(-2.2, 0.8, 13.2)
+	fire.position = Vector3(-6.0, 0.9, 32.0)
 	fire.light_color = Color("ffb060")
-	fire.light_energy = 1.25
-	fire.omni_range = 6.5
+	fire.light_energy = 1.3
+	fire.omni_range = 8.0
 	add_child(fire)
-	add_child(Props.box(Vector3(2.4, 1.25, 1.7), Color("8c3d3d"), Vector3(5.5, 0.68, 14.3)))
-	_jar(Vector3(-5.2, 0, 10.5))
+	add_child(Props.box(Vector3(3.2, 1.45, 2.2), Color("8c3d3d"), Vector3(14.0, 0.75, 34.0)))
+	_jar(Vector3(-14.0, 0, 26.0))
+	# A quiet side yard. Still camp, still safe.
+	add_child(Props.box(Vector3(2.4, 0.45, 0.5), Color("a07a48"), Vector3(18.0, 0.28, 22.0)))
+	_pickup("berry_yard", "berry", Vector3(18.0, 0, 18.5), "")
+	_sign(Vector3(16.0, 0, 20.0), "Yard", "Lina's drying yard. Nothing wanders here. The tea is the dangerous part, and only if you forget it.")
 
 
 func _dress_meadow() -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 560
-	for i in 14:
-		var pos := Vector3(rng.randf_range(-12, 12), 0, rng.randf_range(-20, -2))
-		if absf(pos.x) < 2.2:
-			continue
-		var color := Color("f2d36b") if i % 2 == 0 else Color("dce7f2")
-		add_child(Props.sphere(0.12, color, pos + Vector3(0, 0.12, 0)))
-	_tree(Vector3(-11, 0, -6), false)
-	_tree(Vector3(-10.5, 0, -18), false)
-	_tree(Vector3(11, 0, -5), false)
-	_tree(Vector3(10, 0, -18.5), false)
+	for pos in [Vector3(-40, 0, -8), Vector3(-48, 0, -28), Vector3(48, 0, -18), Vector3(-36, 0, -70), Vector3(40, 0, -74), Vector3(12, 0, -8), Vector3(-14, 0, -46)]:
+		_tree(pos, false)
+	# Lamb Hill: a ring of stones and a step, west of the fork. Not on the way to the grove.
+	for i in 8:
+		var angle := TAU * float(i) / 8.0
+		var stone := Props.cylinder(0.45, 0.7, Color("b7b1a4"), Vector3(-46 + cos(angle) * 4.2, 0.35, -18 + sin(angle) * 4.2))
+		add_child(stone)
+	add_child(Props.cylinder(1.6, 0.35, Color("cfc6b4"), Vector3(-46, 0.2, -18)))
+	# Creek reeds. The water tiles are already blue.
+	for pos in [Vector3(22, 0, -6), Vector3(30, 0, 4), Vector3(42, 0, -8), Vector3(24, 0, 6)]:
+		add_child(Props.cylinder(0.08, 0.9, Color("2f6a48"), pos + Vector3(0, 0.45, 0)))
+	add_child(Props.sphere(0.35, Color("d9d3c6"), Vector3(34, 0.2, 0)))
 
 
 func _dress_grove() -> void:
-	for pos in [Vector3(22, 0, -12), Vector3(32, 0, -13), Vector3(33, 0, -24), Vector3(21, 0, -26), Vector3(30.5, 0, -22)]:
+	for pos in [Vector3(66, 0, -18), Vector3(96, 0, -22), Vector3(118, 0, -34), Vector3(70, 0, -70), Vector3(110, 0, -72), Vector3(88, 0, -16), Vector3(124, 0, -58)]:
 		_tree(pos, true)
-	_jar(Vector3(24, 0, -14))
-	_jar(Vector3(31, 0, -17))
-	_jar(Vector3(23.5, 0, -24))
+	_jar(Vector3(100, 0, -24))
+	_jar(Vector3(114, 0, -18))
+	_jar(Vector3(108, 0, -30))
+	# Jar Nook, a side pocket off the east trees.
+	add_child(Props.cylinder(0.55, 1.4, Color("6b5438"), Vector3(110, 0.7, -14)))
 
 
 func _dress_ruin() -> void:
-	for pos in [Vector3(20, 0, -42), Vector3(33, 0, -43), Vector3(21, 0, -51), Vector3(33, 0, -51)]:
-		add_child(Props.cylinder(0.4, 2.2, Color("b7b1a6"), pos + Vector3(0, 1.1, 0)))
-	_jar(Vector3(24, 0, -44))
-	_jar(Vector3(29, 0, -47))
-	_jar(Vector3(26, 0, -51))
-	add_child(Props.box(Vector3(4.2, 0.35, 1.4), Color("a39d94"), Vector3(27, 0.2, -49)))
+	for pos in [Vector3(68, 0, -90), Vector3(118, 0, -92), Vector3(66, 0, -132), Vector3(120, 0, -134), Vector3(92, 0, -146)]:
+		add_child(Props.cylinder(0.55, 2.6, Color("b7b1a6"), pos + Vector3(0, 1.3, 0)))
+	_jar(Vector3(88, 0, -124))
+	_jar(Vector3(96, 0, -132))
+	_jar(Vector3(92, 0, -136))
+	add_child(Props.box(Vector3(6.0, 0.4, 2.0), Color("a39d94"), Vector3(92, 0.25, -118)))
+	# Broken Landing, a side alcove of cracked steps.
+	add_child(Props.box(Vector3(3.5, 0.35, 1.4), Color("8d877c"), Vector3(70, 0.2, -116)))
+	add_child(Props.box(Vector3(2.4, 0.55, 1.2), Color("7a756c"), Vector3(73, 0.3, -112)))
+
+
+func _dress_margins() -> void:
+	# A few trees in the unused east, so the empty room reads as woods waiting, not a hole.
+	for pos in [Vector3(140, 0, -24), Vector3(150, 0, -48), Vector3(142, 0, -64)]:
+		_tree(pos, true)
 
 
 func _tree(pos: Vector3, dark: bool) -> void:
-	add_child(Props.cylinder(0.22, 1.35, Color("5a3b28"), pos + Vector3(0, 0.68, 0)))
+	add_child(Props.cylinder(0.28, 1.7, Color("5a3b28"), pos + Vector3(0, 0.85, 0)))
 	var leaf := Color("2c6240") if dark else Color("3f8f4a")
-	add_child(Props.sphere(0.85, leaf, pos + Vector3(0, 1.75, 0)))
+	add_child(Props.sphere(1.15, leaf, pos + Vector3(0, 2.15, 0)))
 	var body := StaticBody3D.new()
-	body.position = pos + Vector3(0, 0.7, 0)
+	body.position = pos + Vector3(0, 0.9, 0)
 	var shape := CollisionShape3D.new()
 	var cyl := CylinderShape3D.new()
-	cyl.radius = 0.4
-	cyl.height = 1.4
+	cyl.radius = 0.55
+	cyl.height = 1.8
 	shape.shape = cyl
 	body.add_child(shape)
 	add_child(body)
@@ -419,47 +568,81 @@ func _jar(pos: Vector3) -> void:
 	var node := Node3D.new()
 	node.position = pos
 	add_child(node)
-	node.add_child(Props.cylinder(0.28, 0.55, Color("c4a574"), Vector3(0, 0.32, 0)))
-	var cork := Props.sphere(0.16, Color("6b4423"), Vector3(0, 0.66, 0))
+	node.add_child(Props.cylinder(0.32, 0.62, Color("c4a574"), Vector3(0, 0.36, 0)))
+	var cork := Props.sphere(0.18, Color("6b4423"), Vector3(0, 0.74, 0))
 	cork.name = "Cork"
 	node.add_child(cork)
-	var wick := Props.sphere(0.12, Color("f6e3a1"), Vector3(0, 0.95, 0), 2.4)
+	var wick := Props.sphere(0.14, Color("f6e3a1"), Vector3(0, 1.05, 0), 2.4)
 	wick.name = "Wick"
 	wick.visible = false
 	node.add_child(wick)
 	var glow := OmniLight3D.new()
 	glow.name = "Glow"
-	glow.position = Vector3(0, 1.05, 0)
+	glow.position = Vector3(0, 1.15, 0)
 	glow.light_color = Color("ffd48a")
-	glow.light_energy = 0.85
-	glow.omni_range = 3.6
+	glow.light_energy = 0.9
+	glow.omni_range = 4.2
 	glow.visible = false
 	node.add_child(glow)
 	jars.append(node)
 	var body := StaticBody3D.new()
-	body.position = pos + Vector3(0, 0.3, 0)
+	body.position = pos + Vector3(0, 0.35, 0)
 	var shape := CollisionShape3D.new()
 	var cyl := CylinderShape3D.new()
-	cyl.radius = 0.32
-	cyl.height = 0.6
+	cyl.radius = 0.36
+	cyl.height = 0.7
 	shape.shape = cyl
 	body.add_child(shape)
 	add_child(body)
 
 
 func _sign(pos: Vector3, short: String, full: String) -> void:
-	add_child(Props.cylinder(0.08, 1.1, Color("6b4a2e"), pos + Vector3(0, 0.55, 0)))
+	add_child(Props.cylinder(0.1, 1.35, Color("6b4a2e"), pos + Vector3(0, 0.68, 0)))
 	var label := Label3D.new()
 	label.text = short
-	label.font_size = 28
-	label.pixel_size = 0.008
-	label.position = pos + Vector3(0, 1.35, 0)
+	label.font_size = 32
+	label.pixel_size = 0.01
+	label.position = pos + Vector3(0, 1.7, 0)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.outline_size = 6
+	label.outline_size = 8
 	label.modulate = Color("f3e2c2")
 	add_child(label)
 	signs.append({"pos": pos, "text": full})
 
 
-func _near(body: Node3D, p: Vector3) -> bool:
-	return Vector2(p.x - body.global_position.x, p.z - body.global_position.z).length() < 2.8
+func _pickup(id: String, kind: String, pos: Vector3, note: String) -> void:
+	var node := Node3D.new()
+	node.position = pos
+	add_child(node)
+	if kind == "berry":
+		node.add_child(Props.sphere(0.22, Color("c4553a"), Vector3(0, 0.28, 0), 0.35))
+	elif kind == "sip":
+		node.add_child(Props.sphere(0.2, Color("7ec8ea"), Vector3(0, 0.28, 0), 0.8))
+		node.add_child(Props.cylinder(0.12, 0.18, Color("d9eef8"), Vector3(0, 0.16, 0)))
+	else:
+		node.add_child(Props.box(Vector3(0.42, 0.06, 0.3), Color("f0e2c4"), Vector3(0, 0.12, 0)))
+	var area := Area3D.new()
+	area.collision_layer = 0
+	area.collision_mask = 1
+	area.monitorable = false
+	var shape := CollisionShape3D.new()
+	var cyl := CylinderShape3D.new()
+	cyl.radius = 1.05
+	cyl.height = 1.4
+	shape.shape = cyl
+	shape.position = Vector3(0, 0.7, 0)
+	area.add_child(shape)
+	node.add_child(area)
+	area.body_entered.connect(_on_pickup.bind(id))
+	pickups[id] = {"kind": kind, "note": note, "node": node, "taken": false}
+
+
+func _on_pickup(body: Node, id: String) -> void:
+	if not active or body != hero:
+		return
+	if not pickups.has(id) or bool(pickups[id].taken):
+		return
+	pickups[id].taken = true
+	var node: Node3D = pickups[id].node
+	node.visible = false
+	pickup_found.emit(str(pickups[id].kind), str(pickups[id].note))

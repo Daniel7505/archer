@@ -11,7 +11,7 @@ enum Mode { TITLE, PLAY, TALK, BOOK, BATTLE, LEVELUP, DEFEAT, ENDING }
 const INTRO := [
 	"Lina: The wicklights live in the Lantern Grove. Small, warm, and awful at staying put.",
 	"Lina: Mosswick corked them into jars, up the Sealed Stair. He says a grove should be tidy.",
-	"Lina: Cinder mites are cracking the meadow. Clear them and the grove gate will loosen. I will keep the tea hot.",
+	"Lina: Cinder mites wander the meadow. They do not come into camp. Touch one and the grass takes you to a clearing. Walk around them if you would rather see the hill.",
 	"Archer: We bring the lights home.",
 	"Panda: And we do not stand together in the red circles.",
 ]
@@ -41,6 +41,8 @@ var dialogue_then: Callable = Callable()
 var after_points: Callable = Callable()
 var battle_snapshot: Dictionary = {}
 var current_battle := ""
+var current_foe := ""
+var instant_transitions := false
 var panel_ids: Array = []
 var music: AudioStreamPlayer
 
@@ -150,6 +152,8 @@ func debug_skip_title() -> void:
 
 
 func debug_battle(id: String) -> void:
+	instant_transitions = true
+	current_foe = ""
 	battle_snapshot = party.snapshot()
 	current_battle = id
 	mode = Mode.BATTLE
@@ -161,6 +165,20 @@ func debug_battle(id: String) -> void:
 	battle.instant = true
 	battle.begin(id, party, true)
 	battle.force_turn("archer")
+
+
+func debug_touch(foe_id: String) -> void:
+	instant_transitions = true
+	var battle_id := str(overworld.foes[foe_id].battle)
+	_on_encounter(battle_id, foe_id)
+
+
+func debug_finish_battle() -> void:
+	instant_transitions = true
+	for fighter in battle.fighters:
+		if fighter.side == "enemy":
+			fighter.hp = 0
+	battle._check_end()
 
 
 func _register_inputs() -> void:
@@ -209,7 +227,7 @@ func _build_world() -> void:
 	env.adjustment_saturation = 1.12
 	env.fog_enabled = true
 	env.fog_light_color = Color("f0d7b0")
-	env.fog_density = 0.0045
+	env.fog_density = 0.0028
 	env.fog_aerial_perspective = 0.25
 	var world_env := WorldEnvironment.new()
 	world_env.environment = env
@@ -220,7 +238,7 @@ func _build_world() -> void:
 	sun.light_color = Color("ffe2b0")
 	sun.light_energy = 1.35
 	sun.shadow_enabled = DisplayServer.get_name() != "headless"
-	sun.directional_shadow_max_distance = 55.0
+	sun.directional_shadow_max_distance = 90.0
 	add_child(sun)
 
 	camera = Camera3D.new()
@@ -240,8 +258,8 @@ func _build_world() -> void:
 	overworld.build()
 	overworld.encounter_hit.connect(_on_encounter)
 	overworld.lina_talk.connect(_talk_lina)
-	overworld.gate_msg.connect(_on_gate)
 	overworld.sign_read.connect(_on_sign)
+	overworld.pickup_found.connect(_on_pickup)
 
 	battle = BattleScript.new()
 	battle.name = "Battle"
@@ -255,7 +273,7 @@ func _show_title() -> void:
 	mode = Mode.TITLE
 	overworld.active = false
 	_apply_play_cam()
-	var body := "A short quest for Nick and Suni.\n\nThe archer and the panda share one life. Walk from camp through the meadow and the grove to the sealed stair.\n\nWhen a gauge fills, walk the blue circle, then attack, cast, use an item, or defend. Spells grow the element you used.\n\nWASD to walk. Space to begin."
+	var body := "A short quest for Nick and Suni.\n\nThe archer and the panda share one life. The meadow, the grove, and the stair are wide enough to wander. Foes walk the grass. Camp stays quiet.\n\nTouch a foe and the world fades to a clearing. Then the blue circle, the spells, and the four elements.\n\nWASD to walk. Space to begin."
 	_show_panel("Wicklight Grove", body, [{"id": "begin", "label": "Begin"}])
 
 
@@ -286,11 +304,11 @@ func _talk_lina() -> void:
 	if party.ending_seen:
 		lines.append("Lina: You brought the lights home. The tea tastes brighter.")
 	elif party.cleared.grove:
-		lines.append("Lina: The grove is quieter. The stair is the last cork.")
+		lines.append("Lina: The lurker is a poor doorman. The stair is north through the trees, when you want it.")
 	elif party.cleared.meadow:
-		lines.append("Lina: The meadow stopped cracking. The grove will let you through.")
+		lines.append("Lina: You came back. Lamb Hill and Pebble Creek are still there if the mites can wait.")
 	else:
-		lines.append("Lina: North first. The mites are the loud ones.")
+		lines.append("Lina: North first, if you like. The mites are loud, and the hill is not.")
 	lines.append("Lina: Sit. Pears, tea, and a full breath.")
 	_say(lines, _do_rest)
 
@@ -306,60 +324,62 @@ func _on_sign(text: String) -> void:
 	_say([text], Callable())
 
 
-func _on_gate(which: String) -> void:
-	if which == "grove" and not party.cleared.meadow:
-		_say(["A braid of brambles holds the grove gate. Clear the cracking meadow and it will loosen."], Callable())
-	elif which == "ruin" and not party.cleared.grove:
-		_say(["Jar-wax seals the stair. The Lantern Grove is still dark."], Callable())
+func _on_pickup(kind: String, note: String) -> void:
+	if kind == "berry":
+		var count := party.add_item("grove_berry", 1)
+		hud.toast("Grove Berry. You are carrying %d." % count)
+	elif kind == "sip":
+		var count := party.add_item("spirit_sip", 1)
+		hud.toast("Spirit Sip. You are carrying %d." % count)
+	elif kind == "note" and note != "":
+		_say([note], Callable())
 
 
-func _on_encounter(id: String) -> void:
+func _on_encounter(battle_id: String, foe_id: String) -> void:
 	if party.pending_points > 0:
-		overworld.nudge_out(id)
+		overworld.nudge_from_foe(foe_id)
+		overworld.active = true
 		_say(["Place your element points before the next fight. Press B."], Callable())
 		return
-	if id == "grove" and not party.cleared.meadow:
-		overworld.nudge_out(id)
-		_say(["The grove path is still tangled. The meadow is cracking."], Callable())
-		return
-	if id == "stair" and not party.cleared.grove:
-		overworld.nudge_out(id)
-		_say(["The stair is sealed. The grove is still dark behind you."], Callable())
-		return
-	if party.cleared.get(id, false):
-		overworld.active = true
-		return
-	overworld.set_trigger_enabled(id, false)
-	_start_battle(id)
+	current_foe = foe_id
+	_begin_from_map(battle_id)
 
 
-func _start_battle(id: String) -> void:
+func _begin_from_map(id: String) -> void:
 	battle_snapshot = party.snapshot()
 	current_battle = id
 	overworld.active = false
-	_say([Rules.ENCOUNTERS[id].intro], _enter_battle)
-
-
-func _enter_battle() -> void:
+	await _fade(1.0)
 	mode = Mode.BATTLE
 	overworld.visible = false
 	battle.visible = true
 	hud.set_battle_mode(true)
 	_apply_battle_cam()
-	battle.instant = false
-	battle.begin(current_battle, party, false)
+	battle.instant = instant_transitions
+	battle.begin(id, party, instant_transitions)
+	await _fade(0.0)
+	var intro := str(Rules.ENCOUNTERS[id].get("intro", ""))
+	if intro != "":
+		hud.toast(intro)
 
 
 func _on_battle_over(victory: bool) -> void:
 	if victory:
 		var enc: Dictionary = Rules.ENCOUNTERS[current_battle]
 		var levels: int = party.grant_victory_xp(int(enc.xp))
-		party.cleared[current_battle] = true
-		overworld.on_battle_won(current_battle)
+		var region := str(enc.get("region", ""))
+		if region == "meadow":
+			party.cleared.meadow = true
+		elif current_battle == "lurker":
+			party.cleared.grove = true
+		elif current_battle == "stair":
+			party.cleared.stair = true
+		if current_foe != "":
+			overworld.on_foe_beaten(current_foe)
 		if levels > 0:
 			hud.toast("Level %d. Place %d element points." % [party.level, party.pending_points])
 		var afterwards := func():
-			if current_battle == "stair":
+			if bool(enc.get("boss", false)):
 				_start_ending()
 			else:
 				_leave_battle(str(enc.win))
@@ -372,17 +392,21 @@ func _on_battle_over(victory: bool) -> void:
 
 
 func _leave_battle(line: String) -> void:
+	await _fade(1.0)
 	battle.clear_for_exit()
 	battle.visible = false
 	overworld.visible = true
+	if current_foe != "":
+		overworld.nudge_from_foe(current_foe)
 	hud.set_battle_mode(false)
 	hud.clear_choices()
 	_apply_play_cam()
+	await _fade(0.0)
+	mode = Mode.PLAY
+	overworld.active = true
+	current_foe = ""
 	if line != "":
-		_say([line], Callable())
-	else:
-		mode = Mode.PLAY
-		overworld.active = true
+		hud.toast(line)
 
 
 func _open_defeat() -> void:
@@ -409,8 +433,7 @@ func _retry() -> void:
 func _back_camp() -> void:
 	party.restore(battle_snapshot)
 	party.full_rest()
-	if current_battle != "":
-		overworld.set_trigger_enabled(current_battle, true)
+	current_foe = ""
 	battle.clear_for_exit()
 	battle.visible = false
 	overworld.visible = true
@@ -426,6 +449,7 @@ func _back_camp() -> void:
 
 func _start_ending() -> void:
 	party.ending_seen = true
+	await _fade(1.0)
 	battle.clear_for_exit()
 	battle.visible = false
 	overworld.visible = true
@@ -433,6 +457,7 @@ func _start_ending() -> void:
 	overworld.play_thanks()
 	hud.set_battle_mode(false)
 	_apply_play_cam()
+	await _fade(0.0)
 	_say(ENDING, _show_ending_card)
 
 
@@ -579,10 +604,21 @@ func _apply_battle_cam() -> void:
 
 
 func _apply_play_cam() -> void:
-	cam_dist = 11.5
-	cam_height = 8.0
+	cam_dist = 12.5
+	cam_height = 8.2
 	viewing_battle = false
 	cam_snap = true
+
+
+func _fade(target: float) -> void:
+	if hud == null:
+		return
+	hud.fade_to(target)
+	if instant_transitions:
+		hud.fade.color.a = target
+		await get_tree().process_frame
+		return
+	await get_tree().create_timer(0.45).timeout
 
 
 func _update_camera(delta: float) -> void:
