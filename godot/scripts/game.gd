@@ -345,7 +345,9 @@ func _talk_lina() -> void:
 	elif party.cleared.meadow:
 		lines.append("Lina: You came back. Lamb Hill and Pebble Creek are still there if the mites can wait.")
 	else:
-		lines.append("Lina: This yard is home. Come back when you need the breath.")
+		lines.append("Lina: The archer and the panda are already partners. You settled that between you.")
+		lines.append("Lina: This camp is home. The tea stays on.")
+		lines.append("Lina: The road east is the start of the trouble. Not the whole of it.")
 	lines.append("Lina: Quill's stall is east, on the stone road, this side of the grove. That is the next talk.")
 	lines.append("Lina: Sit. Pears, tea, and a full breath.")
 	_say(lines, _do_rest)

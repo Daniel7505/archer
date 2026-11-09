@@ -166,6 +166,12 @@ func _scene() -> bool:
 	ok = check(game.overworld.awake_chunk_count() * 4 < game.overworld.chunk_count(), "most chunks are not simulated") and ok
 	ok = check(game.overworld.region_name() == "Bramblewick Camp", "camp is named") and ok
 	ok = check(game.overworld.hero.global_position.distance_to(game.overworld.lina_pos) < 8.0, "spawn stands in Lina's yard") and ok
+	game.overworld.place_world(game.overworld.lina_pos)
+	game.overworld.interact()
+	var welcome := _said(game)
+	ok = check("partners" in welcome and "home" in welcome, "Lina says they are partners and the camp is home") and ok
+	ok = check("east" in welcome and "trouble" in welcome and "Quill" in welcome, "Lina points down the east road to Quill") and ok
+	_close_talk(game)
 	ok = check(game.overworld.road_is_connected(), "the road is one connected path") and ok
 	ok = check(game.overworld.road_near(game.overworld.hero.global_position, 18.0), "the road is visible from camp") and ok
 	ok = check(game.overworld.road_near(game.overworld.quill_pos, 16.0), "the road passes Quill's stall") and ok
