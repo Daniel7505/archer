@@ -146,6 +146,7 @@ func _scene() -> bool:
 	ok = check(game.get_node_or_null("Overworld") != null, "overworld exists") and ok
 	ok = check(game.get_node_or_null("Battle") != null, "battle exists") and ok
 	ok = check(game.get_node_or_null("HUD") != null, "hud exists") and ok
+	ok = check("Grok Bot wrote the words, for Nick and Suni." in game.hud.panel_body.text, "the title screen credits Grok Bot") and ok
 	ok = check(InputMap.has_action("p2_confirm") and InputMap.has_action("p2_attack") and InputMap.has_action("p2_spell") and InputMap.has_action("p2_item") and InputMap.has_action("p2_defend"), "player 2 pad actions exist") and ok
 	ok = check(not game.overworld.coop_active(), "without a pad the party stays single-player") and ok
 	game.debug_skip_title()
@@ -295,6 +296,8 @@ func _scene() -> bool:
 			break
 	ok = check(peak > y0 + 0.45, "Space lifts the archer off the ground") and ok
 	ok = check(landed, "the archer comes back down") and ok
+	game._open_book()
+	ok = check("Grok Bot wrote the words, for Nick and Suni." in game.hud.panel_body.text, "the spell book credits Grok Bot") and ok
 	return ok
 
 

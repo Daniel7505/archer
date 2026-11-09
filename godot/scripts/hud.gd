@@ -144,9 +144,9 @@ func _build() -> void:
 	panel.visible = false
 	panel.set_anchors_preset(Control.PRESET_CENTER)
 	panel.offset_left = -380
-	panel.offset_top = -250
+	panel.offset_top = -280
 	panel.offset_right = 380
-	panel.offset_bottom = 250
+	panel.offset_bottom = 280
 	panel.add_theme_stylebox_override("panel", _panel_style())
 	add_child(panel)
 	var pbox := VBoxContainer.new()
@@ -158,7 +158,7 @@ func _build() -> void:
 	panel_body = RichTextLabel.new()
 	panel_body.bbcode_enabled = false
 	panel_body.scroll_active = true
-	panel_body.custom_minimum_size = Vector2(680, 250)
+	panel_body.custom_minimum_size = Vector2(680, 300)
 	panel_body.add_theme_font_size_override("normal_font_size", 18)
 	panel_body.add_theme_color_override("default_color", Color("f6efe2"))
 	pbox.add_child(panel_body)

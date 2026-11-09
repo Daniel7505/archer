@@ -294,7 +294,7 @@ func _show_title() -> void:
 	mode = Mode.TITLE
 	overworld.active = false
 	_apply_play_cam()
-	var body := "A short original quest for Nick and Suni.\n\nThe archer and the panda are already partners. The wicklights are trouble on the road to Aldermoor, not the end of it. Seven cursed orbs are only a whisper so far.\n\nOne keyboard walks the archer. A PlayStation controller, if you plug one in, walks the panda.\n\nWASD to walk. Space to begin."
+	var body := "A short original quest for Nick and Suni.\n\nThe archer and the panda are already partners. The wicklights are trouble on the road to Aldermoor, not the end of it. Seven cursed orbs are only a whisper so far.\n\nOne keyboard walks the archer. A PlayStation controller, if you plug one in, walks the panda.\n\nWASD to walk. Space to begin.\n\nGrok Bot wrote the words, for Nick and Suni."
 	_show_panel("Wicklight Grove", body, [{"id": "begin", "label": "Begin"}])
 
 
@@ -540,7 +540,8 @@ func _open_book() -> void:
 
 
 func _refresh_book() -> void:
-	var body := "Cast a spell and that element grows. Level 3 unlocks its stronger spell. A character level also gives points you can place.\n\n"
+	var body := "Grok Bot wrote the words, for Nick and Suni.\n\n"
+	body += "Cast a spell and that element grows. Level 3 unlocks its stronger spell. A character level also gives points you can place.\n\n"
 	body += "Level %d    next at %d xp (%d/%d)\n" % [party.level, party.xp_to_next, party.xp, party.xp_to_next]
 	body += "Archer %d/%d    Panda %d/%d    Shared spirit %d/%d\n\n" % [party.archer_hp, party.archer_hp_max, party.panda_hp, party.panda_hp_max, party.mp, party.mp_max]
 	body += "Pack, from Grubbo: Gold-Coin Buckle, Moustache Comb, Mystery Shard, a handful of coins.\n"
