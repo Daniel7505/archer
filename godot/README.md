@@ -26,7 +26,7 @@ Bramblewick Camp, the meadow, the grove, and the stair are the opening wilds. Mo
 
 ## How to play
 
-You start at Bramblewick Camp. Lina keeps the tea, and nothing wanders there. North is the Golden Meadow, then the Lantern Grove and the Sealed Stair. East, past the meadow fork, is the Aldermoor road. You can leave the path. Lamb Hill, Pebble Creek, the Jar Nook, and Broken Landing are optional.
+You start at Bramblewick Camp. Lina keeps the tea, and nothing wanders there. North is the Golden Meadow, then the Lantern Grove and the Sealed Stair. East, past the meadow fork, is the Aldermoor road, and past the valley gate are the outer fields. You can leave the path. Lamb Hill, Pebble Creek, the Jar Nook, and Broken Landing are optional. Briarwell is a small cluster of roofs partway to the city wall.
 
 Each of them has a **life**. **Spirit is shared.** A red circle hurts every body standing in it. Dewmend heals each of you inside it, and a little more when you stand together. If one of you falls, the other can still act and can heal them. If both fall, the fight is lost.
 
@@ -36,7 +36,7 @@ Foes are out in the open. Cinder mites patrol the meadow. Thicket sprigs patrol 
 
 Touching a foe fades the map to black and opens a cleared battle field in the colors of that place. It is not an unseen ambush. Win, and that foe is gone when you return. Leave the region and come back later, and the ordinary ones are walking again. Mosswick stays gone after the story ends. Camp never grows foes.
 
-The road forks. West of the meadow fork is Lamb Hill, only a view. East of the camp hedge, still in the meadow, is Pebble Creek. The grove has a Jar Nook. The stair has a Broken Landing. Berries, spirit sips, and short notes are lying in those corners. None of them are required to reach Mosswick. The east trees past the grove are empty on purpose.
+The road forks. West of the meadow fork is Lamb Hill, only a view. East of the camp hedge, still in the meadow, is Pebble Creek. The grove has a Jar Nook. The stair has a Broken Landing. Berries, spirit sips, and short notes are lying in those corners. None of them are required to reach Mosswick. Past the valley gate the stone road keeps going, with trees and grass on either side, until Aldermoor's walls.
 
 ### One player
 
