@@ -166,6 +166,8 @@ func _scene() -> bool:
 	ok = check(game.overworld.awake_chunk_count() * 4 < game.overworld.chunk_count(), "most chunks are not simulated") and ok
 	ok = check(game.overworld.region_name() == "Bramblewick Camp", "camp is named") and ok
 	ok = check(game.overworld.hero.global_position.distance_to(game.overworld.lina_pos) < 8.0, "spawn stands in Lina's yard") and ok
+	ok = check(ResourceLoader.exists("res://assets/ground/grass_color.jpg") and ResourceLoader.exists("res://assets/ground/gravel_color.jpg"), "grass and gravel textures are in the project") and ok
+	ok = check(game.overworld.grass_ground_mat != null and game.overworld.gravel_ground_mat != null, "fields and the road have ground materials") and ok
 	game.overworld.place_world(game.overworld.lina_pos)
 	game.overworld.interact()
 	var welcome := _said(game)

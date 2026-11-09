@@ -55,6 +55,9 @@ var grass_mat: ShaderMaterial
 var foliage_shader: Shader
 var canopy_quad: QuadMesh
 var grass_quad: QuadMesh
+var grass_ground_mat: StandardMaterial3D
+var gravel_ground_mat: StandardMaterial3D
+var gravel_edge_mat: StandardMaterial3D
 
 # Map foes. Camp is intentionally absent.
 const FOE_TABLE := [
@@ -89,6 +92,7 @@ func build() -> void:
 	quill_pos = _w(104.0, -30.0)
 	ilvane_pos = _w(150.0, -38.0)
 	_init_foliage()
+	_init_ground()
 	_ground()
 	_hedges()
 	_dress_camp()
@@ -570,10 +574,10 @@ func _make_hero() -> void:
 
 func _ground() -> void:
 	_tiles(-24, 12, 24, 46, [Color("c4a06a"), Color("b89260")], 0.02)
-	_tiles(-60, -80, 58, 12, [Color("7ea354"), Color("8fb862")], 0.02)
+	_tiles(-60, -80, 58, 12, [Color("7ea354"), Color("8fb862")], 0.02, true)
 	_tiles(18, -12, 52, 10, [Color("6aa8c4"), Color("7eb8d0")], 0.03)
-	_tiles(58, -80, 128, -8, [Color("3e6844"), Color("345c3c")], 0.02)
-	_tiles(128, -80, 160, -8, [Color("35563a"), Color("2e4c34")], 0.02)
+	_tiles(58, -80, 128, -8, [Color("3e6844"), Color("345c3c")], 0.02, true)
+	_tiles(128, -80, 160, -8, [Color("35563a"), Color("2e4c34")], 0.02, true)
 	_tiles(58, -168, 128, -78, [Color("9a9488"), Color("8b857c")], 0.02)
 	_tiles(58, -168, 160, -140, [Color("7d786f"), Color("726d66")], 0.02)
 	_path(-56, -22, 6, -14, Color("d2b48c"))
@@ -581,7 +585,7 @@ func _ground() -> void:
 	_path(70, -140, 104, -78, Color("b7aa96"))
 
 
-func _tiles(x0: float, z0: float, x1: float, z1: float, colors: Array, y: float) -> void:
+func _tiles(x0: float, z0: float, x1: float, z1: float, colors: Array, y: float, grass: bool = false) -> void:
 	var x := x0
 	var col := 0
 	while x < x1:
@@ -591,7 +595,7 @@ func _tiles(x0: float, z0: float, x1: float, z1: float, colors: Array, y: float)
 			var color: Color = colors[(col + row) % colors.size()]
 			var w := minf(TILE, x1 - x)
 			var d := minf(TILE, z1 - z)
-			_patch(x, z, x + w, z + d, color, y)
+			_patch(x, z, x + w, z + d, color, y, grass)
 			z += TILE
 			row += 1
 		x += TILE
@@ -617,7 +621,7 @@ func _hedges() -> void:
 	_wall(8, 12, 160, 12, hedge)
 
 
-func _patch(x0: float, z0: float, x1: float, z1: float, color: Color, y: float) -> void:
+func _patch(x0: float, z0: float, x1: float, z1: float, color: Color, y: float, grass: bool = false) -> void:
 	var span_x := absf(x1 - x0)
 	var span_z := absf(z1 - z0)
 	if span_x > 36.0 or span_z > 36.0:
@@ -629,14 +633,18 @@ func _patch(x0: float, z0: float, x1: float, z1: float, color: Color, y: float) 
 				var bx := lerpf(x0, x1, float(ix + 1) / float(steps_x))
 				var az := lerpf(z0, z1, float(iz) / float(steps_z))
 				var bz := lerpf(z0, z1, float(iz + 1) / float(steps_z))
-				_patch(minf(ax, bx), minf(az, bz), maxf(ax, bx), maxf(az, bz), color, y)
+				_patch(minf(ax, bx), minf(az, bz), maxf(ax, bx), maxf(az, bz), color, y, grass)
 		return
 	var wx0 := x0 * ZONE1_SCALE
 	var wz0 := z0 * ZONE1_SCALE
 	var wx1 := x1 * ZONE1_SCALE
 	var wz1 := z1 * ZONE1_SCALE
 	var pos := Vector3((wx0 + wx1) * 0.5, y, (wz0 + wz1) * 0.5)
-	_adopt(_paint_box(Vector3(absf(wx1 - wx0), 0.08, absf(wz1 - wz0)), color, pos), pos)
+	var slab_size := Vector3(absf(wx1 - wx0), 0.08, absf(wz1 - wz0))
+	if grass and grass_ground_mat != null:
+		_adopt(_textured_slab(slab_size, grass_ground_mat, pos), pos)
+	else:
+		_adopt(_paint_box(slab_size, color, pos), pos)
 
 
 func _wall(x1: float, z1: float, x2: float, z2: float, color: Color, leafy: bool = true) -> void:
@@ -1127,19 +1135,19 @@ func _lay_road(a: Vector3, b: Vector3) -> void:
 	for i in steps:
 		var p0 := a.lerp(b, float(i) / float(steps))
 		var p1 := a.lerp(b, float(i + 1) / float(steps))
-		_road_piece(p0, p1, 10.4, Color("8a6840"), 0.07)
-		_road_piece(p0, p1, 7.4, Color("f0e2c0"), 0.12)
+		_road_piece(p0, p1, 10.4, gravel_edge_mat, 0.07)
+		_road_piece(p0, p1, 7.4, gravel_ground_mat, 0.12)
 
 
-func _road_piece(a: Vector3, b: Vector3, width: float, color: Color, y: float) -> void:
+func _road_piece(a: Vector3, b: Vector3, width: float, mat: Material, y: float) -> void:
 	var delta := Vector3(b.x - a.x, 0.0, b.z - a.z)
 	var length := delta.length()
-	if length < 0.2:
+	if length < 0.2 or mat == null:
 		return
 	var holder := Node3D.new()
 	holder.position = Vector3((a.x + b.x) * 0.5, y, (a.z + b.z) * 0.5)
 	holder.basis = Basis.looking_at(delta.normalized(), Vector3.UP)
-	holder.add_child(_paint_box(Vector3(width, 0.08, length + 0.6), color, Vector3.ZERO))
+	holder.add_child(_textured_slab(Vector3(width, 0.08, length + 0.6), mat, Vector3.ZERO))
 	add_child(holder)
 
 
@@ -1169,6 +1177,44 @@ func _dist_to_segment(p: Vector2, a: Vector2, b: Vector2) -> float:
 		return p.distance_to(a)
 	var t := clampf((p - a).dot(ab) / len2, 0.0, 1.0)
 	return p.distance_to(a + ab * t)
+
+
+func _init_ground() -> void:
+	var grass_tex: Texture2D = load("res://assets/ground/grass_color.jpg")
+	var gravel_tex: Texture2D = load("res://assets/ground/gravel_color.jpg")
+	# About three meters of grass per repeat, and a bit under two meters of gravel,
+	# so a field is not one stretched stamp and the stones stay smaller than a boot.
+	grass_ground_mat = _ground_mat(grass_tex, Color(0.9, 0.98, 0.82), 0.32)
+	gravel_ground_mat = _ground_mat(gravel_tex, Color(0.96, 0.9, 0.78), 0.58)
+	gravel_edge_mat = _ground_mat(gravel_tex, Color(0.62, 0.5, 0.36), 0.58)
+
+
+func _ground_mat(tex: Texture2D, tint: Color, repeats_per_meter: float) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = tex
+	mat.albedo_color = tint
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.uv1_triplanar = true
+	mat.uv1_world_triplanar = true
+	mat.uv1_scale = Vector3(repeats_per_meter, repeats_per_meter, repeats_per_meter)
+	return mat
+
+
+func _textured_slab(size: Vector3, mat: Material, pos: Vector3) -> MeshInstance3D:
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	var node := MeshInstance3D.new()
+	node.mesh = mesh
+	node.material_override = mat
+	node.position = pos
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return node
+
+
+func _biome_is_grass(color: Color) -> bool:
+	return color.g > color.r + 0.02 and color.g > color.b
 
 
 func _flat_mat(color: Color) -> StandardMaterial3D:
@@ -1393,7 +1439,12 @@ func _ensure_chunk(key: Vector2i, sample: Vector3) -> Dictionary:
 	detail.visible = false
 	root.add_child(detail)
 	var center := _chunk_center(key)
-	root.add_child(_paint_box(Vector3(CHUNK, 0.16, CHUNK), _biome_color(center), Vector3(center.x, -0.12, center.z)))
+	var ground_color := _biome_color(center)
+	var ground_pos := Vector3(center.x, -0.12, center.z)
+	if _biome_is_grass(ground_color) and grass_ground_mat != null:
+		root.add_child(_textured_slab(Vector3(CHUNK, 0.16, CHUNK), grass_ground_mat, ground_pos))
+	else:
+		root.add_child(_paint_box(Vector3(CHUNK, 0.16, CHUNK), ground_color, ground_pos))
 	var far := Node3D.new()
 	far.name = "FarFoliage"
 	for i in 3:

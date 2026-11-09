@@ -115,6 +115,10 @@ The first zone is the opening wilds plus the valley gate: Bramblewick Camp, the 
 
 Past the valley gate, the outer fields are the second zone. The stone road to Aldermoor's walls is a several-minute walk, a few times the first crossing, with room north and south for Briarwell and Ash Ridge. The city interior stays shut. You can see the walls.
 
+## Ground
+
+The green fields use a grass photo, and the stone road uses a gravel photo. Both are from [ambientCG](https://ambientcg.com) and are **CC0 1.0** (public domain), so they are free to use in this private gift. The files are `assets/ground/grass_color.jpg` (Grass004) and `assets/ground/gravel_color.jpg` (Gravel020), with the same note in `assets/ground/LICENSE.txt`. They tile in world space at a few meters per repeat, so a meadow is not one stretched picture and the gravel is not a fine noisy grid. Camp dirt, water, and the stone stair stay flat painted color. The trees are still a trunk plus leaf cards.
+
 ## Streaming
 
 The ground is cut into 128 meter chunks. A flat painted slab and a few big foliage cards stay up for the horizon, so the distance does not turn into a hole. Trees, grass, houses, collision, and wandering foes are only awake in the chunks around the party. In co-op that circle follows both of you. Grass cards and tree cards fade out with distance.
