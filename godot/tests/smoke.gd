@@ -149,6 +149,20 @@ func _scene() -> bool:
 	ok = check(InputMap.has_action("p2_confirm") and InputMap.has_action("p2_attack") and InputMap.has_action("p2_spell") and InputMap.has_action("p2_item") and InputMap.has_action("p2_defend"), "player 2 pad actions exist") and ok
 	ok = check(not game.overworld.coop_active(), "without a pad the party stays single-player") and ok
 	game.debug_skip_title()
+	var zone1_ew: float = game.overworld.zone1_cross_seconds()
+	var zone1_ns: float = game.overworld.zone1_north_south_seconds()
+	var zone2_long: float = game.overworld.zone2_cross_seconds()
+	var zone2_wide: float = game.overworld.zone2_breadth_seconds()
+	print("  zone1 east-west %.1f s, north-south %.1f s, zone2 road %.1f s, zone2 breadth %.1f s" % [zone1_ew, zone1_ns, zone2_long, zone2_wide])
+	ok = check(zone1_ew >= 90.0 and zone1_ew <= 120.0, "first zone east-west crossing is Northshire-scale") and ok
+	ok = check(zone1_ns >= 90.0 and zone1_ns <= 120.0, "first zone north-south crossing is Northshire-scale") and ok
+	ok = check(zone2_long > zone1_ew * 2.5 and zone2_long >= 180.0, "second zone road is several times longer") and ok
+	ok = check(zone2_wide >= 150.0, "second zone has a long cross-country breadth") and ok
+	var camp_here: Vector3 = game.overworld._w(0.0, 30.0)
+	var far_here: Vector3 = game.overworld.zone2_sample_point()
+	ok = check(game.overworld.is_chunk_awake_at_world(camp_here), "the camp chunk starts awake") and ok
+	ok = check(not game.overworld.is_chunk_awake_at_world(far_here), "the far fields start asleep") and ok
+	ok = check(game.overworld.awake_chunk_count() * 4 < game.overworld.chunk_count(), "most chunks are not simulated") and ok
 	ok = check(game.overworld.region_name() == "Bramblewick Camp", "camp is named") and ok
 	ok = check(game.overworld.count_foes("camp") == 0, "camp has no wandering foes") and ok
 	ok = check(game.overworld.count_foes("meadow") >= 4, "the meadow has visible wanderers") and ok

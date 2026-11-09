@@ -19,9 +19,9 @@ var hero_visual: Node3D
 var panda_body: CharacterBody3D
 var panda: Node3D
 var panda_prev := Vector3.ZERO
-var quill_pos := Vector3(102.0, 0.0, -40.0)
-var ilvane_pos := Vector3(150.0, 0.0, -38.0)
-var lina_pos := Vector3(8.0, 0.0, 28.0)
+var quill_pos := Vector3.ZERO
+var ilvane_pos := Vector3.ZERO
+var lina_pos := Vector3.ZERO
 var signs: Array = []
 var jars: Array = []
 var foes := {}
@@ -29,7 +29,25 @@ var pickups := {}
 var region_now := "camp"
 var left_regions := {}
 
-const TILE := 8.0
+const TILE := 16.0
+const ZONE1_SCALE := 3.34
+const WALK_SPEED := 6.8
+const CHUNK := 128.0
+const STREAM_RADIUS := 380.0
+const ZONE2_LENGTH := 2350.0
+const ZONE2_BREADTH := 1680.0
+
+var chunks := {}
+var stream_timer := 0.0
+var zone2_start := Vector3.ZERO
+var zone2_end := Vector3.ZERO
+var zone2_road_z := 0.0
+var canopy_mat: ShaderMaterial
+var canopy_dark: ShaderMaterial
+var grass_mat: ShaderMaterial
+var foliage_shader: Shader
+var canopy_quad: QuadMesh
+var grass_quad: QuadMesh
 
 # Map foes. Camp is intentionally absent.
 const FOE_TABLE := [
@@ -61,6 +79,10 @@ const FOE_TABLE := [
 
 
 func build() -> void:
+	lina_pos = _w(8.0, 28.0)
+	quill_pos = _w(102.0, -40.0)
+	ilvane_pos = _w(150.0, -38.0)
+	_init_foliage()
 	_ground()
 	_hedges()
 	_dress_camp()
@@ -69,7 +91,6 @@ func build() -> void:
 	_dress_ruin()
 	_dress_margins()
 	_dress_aldermoor_road()
-	_make_hero()
 	for spec in FOE_TABLE:
 		_spawn_foe(spec)
 	_pickup("berry_hill", "berry", Vector3(-48, 0, -16), "")
@@ -84,7 +105,12 @@ func build() -> void:
 	_sign(Vector3(0, 0, -40), "Fork", "The east road finds the Lantern Grove. West is only Lamb Hill, and the view.")
 	_sign(Vector3(58, 0, -36), "Grove", "Lantern Grove. Smaller things wander. The tall lurker keeps to the north path, and you can walk around it.")
 	_sign(Vector3(92, 0, -84), "Stair", "The Sealed Stair. Mosswick is the one sitting on the jar. The kiln pebbles are only pebbles.")
-	_sign(Vector3(148, 0, -22), "Later", "The east trees are still empty. There is room to grow, later.")
+	_sign(Vector3(148, 0, -22), "Fields", "Past the valley gate are the outer fields. Aldermoor's walls are the long white line, not this door.")
+	_scatter_valley()
+	_register_outer_fields()
+	_build_city_wall()
+	_make_hero()
+	_update_stream()
 	region_now = "camp"
 
 
@@ -116,6 +142,10 @@ func _physics_process(delta: float) -> void:
 		_steer_panda(delta)
 	else:
 		_follow_panda(delta)
+	stream_timer += delta
+	if stream_timer >= 0.35:
+		stream_timer = 0.0
+		_update_stream()
 	_tick_foes(delta)
 
 
@@ -123,6 +153,11 @@ func region_id() -> String:
 	if hero == null:
 		return "camp"
 	var p := hero.global_position
+	if zone2_start != Vector3.ZERO and p.x > zone2_start.x - 12.0:
+		return "fields"
+	var x := p.x / ZONE1_SCALE
+	var z := p.z / ZONE1_SCALE
+	p = Vector3(x, 0, z)
 	if p.x > 100.0 and p.z < -30.0 and p.z > -52.0:
 		return "road"
 	if p.x > 58.0 and p.z < -78.0:
@@ -137,7 +172,16 @@ func region_id() -> String:
 func region_name() -> String:
 	if hero == null:
 		return ""
-	var p := hero.global_position
+	var raw := hero.global_position
+	if region_id() == "fields":
+		if raw.distance_to(Vector3(zone2_start.x + 900.0, raw.y, zone2_road_z)) < 80.0:
+			return "Briarwell"
+		if raw.distance_to(Vector3(zone2_start.x + 1500.0, raw.y, zone2_road_z - 520.0)) < 90.0:
+			return "Ash Ridge"
+		if raw.x > zone2_end.x - 80.0:
+			return "Aldermoor Walls"
+		return "The Outer Fields"
+	var p := Vector3(raw.x / ZONE1_SCALE, 0, raw.z / ZONE1_SCALE)
 	if region_id() == "road":
 		if p.x > 146.0:
 			return "Aldermoor Gate"
@@ -162,15 +206,24 @@ func region_name() -> String:
 
 
 func place(pos: Vector3) -> void:
+	place_world(_w(pos.x, pos.z))
+
+
+func place_world(pos: Vector3) -> void:
 	if hero == null:
 		return
 	hero.global_position = Vector3(pos.x, 0.9, pos.z)
 	hero.velocity = Vector3.ZERO
 	if panda_body:
-		panda_body.global_position = hero.global_position + Vector3(1.2, 0.0, 1.3)
+		panda_body.global_position = hero.global_position + Vector3(1.6, 0.0, 1.4)
 		panda_body.global_position.y = 0.9
 		panda_prev = panda_body.global_position
+	_update_stream()
 	poll_region()
+
+
+func _w(x: float, z: float) -> Vector3:
+	return Vector3(x * ZONE1_SCALE, 0.0, z * ZONE1_SCALE)
 
 
 func poll_region() -> void:
@@ -316,6 +369,8 @@ func _tick_foes(delta: float) -> void:
 				visual.set_moving(false)
 			continue
 		var node: Node3D = foe.node
+		if not is_detail_awake_near(node.global_position):
+			continue
 		var leg := int(foe.leg)
 		var target: Vector3 = points[leg]
 		var to: Vector3 = target - node.position
@@ -340,7 +395,7 @@ func _spawn_foe(spec: Dictionary) -> void:
 	var root := Node3D.new()
 	root.name = str(spec.id)
 	var at: Array = spec.at
-	root.position = Vector3(at[0], 0.0, at[1])
+	root.position = _w(float(at[0]), float(at[1]))
 	var visual := ActorVisual.new()
 	root.add_child(visual)
 	visual.configure(str(spec.kind), str(spec.name))
@@ -366,10 +421,10 @@ func _spawn_foe(spec: Dictionary) -> void:
 		var tint := Color(0.85, 0.45, 0.25, 0.35) if str(spec.battle) == "lurker" else Color(0.75, 0.55, 0.85, 0.4)
 		ring.setup(tint)
 		ring.show_at(Vector3.ZERO, 2.1)
-	add_child(root)
+	_adopt(root, root.position)
 	var points: Array = []
 	for pair in spec.patrol:
-		points.append(Vector3(pair[0], 0.0, pair[1]))
+		points.append(_w(float(pair[0]), float(pair[1])))
 	foes[foe_id] = {
 		"id": foe_id,
 		"region": str(spec.region),
@@ -446,7 +501,7 @@ func _face_flat(body: Node3D, dir: Vector3) -> void:
 func _make_hero() -> void:
 	hero = CharacterBody3D.new()
 	hero.name = "Hero"
-	hero.position = Vector3(0, 0.9, 30)
+	hero.position = Vector3(0, 0.9, 30.0 * ZONE1_SCALE)
 	var shape := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
 	capsule.radius = 0.38
@@ -460,7 +515,7 @@ func _make_hero() -> void:
 	add_child(hero)
 	panda_body = CharacterBody3D.new()
 	panda_body.name = "PandaBody"
-	panda_body.position = Vector3(1.4, 0.9, 31.4)
+	panda_body.position = Vector3(1.6, 0.9, 30.0 * ZONE1_SCALE + 1.4)
 	var panda_shape := CollisionShape3D.new()
 	var panda_capsule := CapsuleShape3D.new()
 	panda_capsule.radius = 0.42
@@ -476,9 +531,6 @@ func _make_hero() -> void:
 
 
 func _ground() -> void:
-	var big := Props.box(Vector3(280, 0.3, 280), Color("4e6b3c"), Vector3(50, -0.2, -60))
-	big.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(big)
 	_tiles(-24, 12, 24, 46, [Color("c4a06a"), Color("b89260")], 0.02)
 	_tiles(-60, -80, 58, 12, [Color("7ea354"), Color("8fb862")], 0.02)
 	_tiles(18, -12, 52, 10, [Color("6aa8c4"), Color("7eb8d0")], 0.03)
@@ -521,33 +573,60 @@ func _hedges() -> void:
 	# Outer ring. The east and far north are empty on purpose.
 	_wall(-60, 46, 160, 46, hedge)
 	_wall(-60, -168, -60, 46, hedge)
-	_wall(160, -168, 160, 46, dark)
-	_wall(-60, -168, 160, -168, stone)
+	_wall(160, -168, 160, -54, dark)
+	_wall(160, -28, 160, 46, dark)
+	_wall(-60, -168, 160, -168, stone, false)
 	# Camp hedge, with a wide gate onto the meadow. Never locked.
 	_wall(-60, 12, -8, 12, hedge)
 	_wall(8, 12, 160, 12, hedge)
 
 
 func _patch(x0: float, z0: float, x1: float, z1: float, color: Color, y: float) -> void:
-	var size := Vector3(absf(x1 - x0), 0.06, absf(z1 - z0))
-	var pos := Vector3((x0 + x1) * 0.5, y, (z0 + z1) * 0.5)
-	var mesh := Props.box(size, color, pos)
-	mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mesh)
+	var span_x := absf(x1 - x0)
+	var span_z := absf(z1 - z0)
+	if span_x > 36.0 or span_z > 36.0:
+		var steps_x := maxi(1, int(ceil(span_x / 32.0)))
+		var steps_z := maxi(1, int(ceil(span_z / 32.0)))
+		for ix in steps_x:
+			for iz in steps_z:
+				var ax := lerpf(x0, x1, float(ix) / float(steps_x))
+				var bx := lerpf(x0, x1, float(ix + 1) / float(steps_x))
+				var az := lerpf(z0, z1, float(iz) / float(steps_z))
+				var bz := lerpf(z0, z1, float(iz + 1) / float(steps_z))
+				_patch(minf(ax, bx), minf(az, bz), maxf(ax, bx), maxf(az, bz), color, y)
+		return
+	var wx0 := x0 * ZONE1_SCALE
+	var wz0 := z0 * ZONE1_SCALE
+	var wx1 := x1 * ZONE1_SCALE
+	var wz1 := z1 * ZONE1_SCALE
+	var pos := Vector3((wx0 + wx1) * 0.5, y, (wz0 + wz1) * 0.5)
+	_adopt(_paint_box(Vector3(absf(wx1 - wx0), 0.08, absf(wz1 - wz0)), color, pos), pos)
 
 
-func _wall(x1: float, z1: float, x2: float, z2: float, color: Color) -> void:
-	var mid := Vector3((x1 + x2) * 0.5, 0.7, (z1 + z2) * 0.5)
-	var sx := absf(x2 - x1)
-	var sz := absf(z2 - z1)
-	var size := Vector3(sx + 0.8, 1.35, 0.8) if sx >= sz else Vector3(0.8, 1.35, sz + 0.8)
-	var mesh := Props.box(size, color, mid)
-	mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mesh)
-	_static_box(mid, size)
+func _wall(x1: float, z1: float, x2: float, z2: float, color: Color, leafy: bool = true) -> void:
+	var length := Vector2(x2 - x1, z2 - z1).length()
+	var steps := maxi(1, int(ceil(length / 28.0)))
+	for i in steps:
+		var a := float(i) / float(steps)
+		var b := float(i + 1) / float(steps)
+		_wall_segment(lerpf(x1, x2, a), lerpf(z1, z2, a), lerpf(x1, x2, b), lerpf(z1, z2, b), color, leafy)
 
 
-func _static_box(pos: Vector3, size: Vector3) -> StaticBody3D:
+func _wall_segment(x1: float, z1: float, x2: float, z2: float, color: Color, leafy: bool) -> void:
+	var mid := _w((x1 + x2) * 0.5, (z1 + z2) * 0.5)
+	mid.y = 0.7
+	var sx := absf(x2 - x1) * ZONE1_SCALE
+	var sz := absf(z2 - z1) * ZONE1_SCALE
+	var size := Vector3(sx + 1.1, 1.45, 1.1) if sx >= sz else Vector3(1.1, 1.45, sz + 1.1)
+	_adopt(_paint_box(size, color, mid), mid)
+	_adopt(_static_body(mid, size), mid)
+	if leafy:
+		var dir := _w(x2, z2) - _w(x1, z1)
+		if dir.length() > 0.2:
+			_hedge_fan(mid, dir.normalized())
+
+
+func _static_body(pos: Vector3, size: Vector3) -> StaticBody3D:
 	var body := StaticBody3D.new()
 	body.position = pos
 	var shape := CollisionShape3D.new()
@@ -555,27 +634,26 @@ func _static_box(pos: Vector3, size: Vector3) -> StaticBody3D:
 	box.size = size
 	shape.shape = box
 	body.add_child(shape)
-	add_child(body)
 	return body
 
 
 func _dress_camp() -> void:
 	var lina := ActorVisual.new()
-	lina.position = lina_pos
-	add_child(lina)
+	lina.position = Vector3(8, 0, 28)
+	_place_design(lina)
 	lina.configure("lina", "Lina")
-	add_child(Props.cylinder(0.18, 0.5, Color("4a3424"), Vector3(-6.0, 0.25, 32.0)))
-	add_child(Props.sphere(0.22, Color("ff8a3c"), Vector3(-6.0, 0.55, 32.0), 2.2))
+	_place_design(Props.cylinder(0.18, 0.5, Color("4a3424"), Vector3(-6.0, 0.25, 32.0)))
+	_place_design(Props.sphere(0.22, Color("ff8a3c"), Vector3(-6.0, 0.55, 32.0), 2.2))
 	var fire := OmniLight3D.new()
 	fire.position = Vector3(-6.0, 0.9, 32.0)
 	fire.light_color = Color("ffb060")
-	fire.light_energy = 1.3
-	fire.omni_range = 8.0
-	add_child(fire)
-	add_child(Props.box(Vector3(3.2, 1.45, 2.2), Color("8c3d3d"), Vector3(14.0, 0.75, 34.0)))
+	fire.light_energy = 1.4
+	fire.omni_range = 14.0
+	_place_design(fire)
+	_place_design(Props.box(Vector3(3.2, 1.45, 2.2), Color("8c3d3d"), Vector3(14.0, 0.75, 34.0)))
 	_jar(Vector3(-14.0, 0, 26.0))
 	# A quiet side yard. Still camp, still safe.
-	add_child(Props.box(Vector3(2.4, 0.45, 0.5), Color("a07a48"), Vector3(18.0, 0.28, 22.0)))
+	_place_design(Props.box(Vector3(2.4, 0.45, 0.5), Color("a07a48"), Vector3(18.0, 0.28, 22.0)))
 	_pickup("berry_yard", "berry", Vector3(18.0, 0, 18.5), "")
 	_sign(Vector3(16.0, 0, 20.0), "Yard", "Lina's drying yard. Nothing wanders here. The tea is the dangerous part, and only if you forget it.")
 
@@ -586,13 +664,13 @@ func _dress_meadow() -> void:
 	# Lamb Hill: a ring of stones and a step, west of the fork. Not on the way to the grove.
 	for i in 8:
 		var angle := TAU * float(i) / 8.0
-		var stone := Props.cylinder(0.45, 0.7, Color("b7b1a4"), Vector3(-46 + cos(angle) * 4.2, 0.35, -18 + sin(angle) * 4.2))
-		add_child(stone)
-	add_child(Props.cylinder(1.6, 0.35, Color("cfc6b4"), Vector3(-46, 0.2, -18)))
+		var stone := Props.cylinder(0.9, 1.8, Color("b7b1a4"), Vector3(-46 + cos(angle) * 4.2, 0.9, -18 + sin(angle) * 4.2))
+		_place_design(stone)
+	_place_design(Props.cylinder(2.4, 0.45, Color("cfc6b4"), Vector3(-46, 0.25, -18)))
 	# Creek reeds. The water tiles are already blue.
 	for pos in [Vector3(22, 0, -6), Vector3(30, 0, 4), Vector3(42, 0, -8), Vector3(24, 0, 6)]:
-		add_child(Props.cylinder(0.08, 0.9, Color("2f6a48"), pos + Vector3(0, 0.45, 0)))
-	add_child(Props.sphere(0.35, Color("d9d3c6"), Vector3(34, 0.2, 0)))
+		_place_design(Props.cylinder(0.08, 1.4, Color("2f6a48"), pos + Vector3(0, 0.7, 0)))
+	_place_design(Props.sphere(0.55, Color("d9d3c6"), Vector3(34, 0.3, 0)))
 
 
 func _dress_grove() -> void:
@@ -602,48 +680,43 @@ func _dress_grove() -> void:
 	_jar(Vector3(114, 0, -18))
 	_jar(Vector3(108, 0, -30))
 	# Jar Nook, a side pocket off the east trees.
-	add_child(Props.cylinder(0.55, 1.4, Color("6b5438"), Vector3(110, 0.7, -14)))
+	_place_design(Props.cylinder(0.7, 2.2, Color("6b5438"), Vector3(110, 1.1, -14)))
 
 
 func _dress_ruin() -> void:
 	for pos in [Vector3(68, 0, -90), Vector3(118, 0, -92), Vector3(66, 0, -132), Vector3(120, 0, -134), Vector3(92, 0, -146)]:
-		add_child(Props.cylinder(0.55, 2.6, Color("b7b1a6"), pos + Vector3(0, 1.3, 0)))
+		_place_design(Props.cylinder(0.8, 4.2, Color("b7b1a6"), pos + Vector3(0, 2.1, 0)))
 	_jar(Vector3(88, 0, -124))
 	_jar(Vector3(96, 0, -132))
 	_jar(Vector3(92, 0, -136))
-	add_child(Props.box(Vector3(6.0, 0.4, 2.0), Color("a39d94"), Vector3(92, 0.25, -118)))
-	# Broken Landing, a side alcove of cracked steps.
-	add_child(Props.box(Vector3(3.5, 0.35, 1.4), Color("8d877c"), Vector3(70, 0.2, -116)))
-	add_child(Props.box(Vector3(2.4, 0.55, 1.2), Color("7a756c"), Vector3(73, 0.3, -112)))
+	_place_design(Props.box(Vector3(8.0, 0.5, 2.4), Color("a39d94"), Vector3(92, 0.3, -118)))
+	_place_design(Props.box(Vector3(4.5, 0.45, 1.8), Color("8d877c"), Vector3(70, 0.25, -116)))
+	_place_design(Props.box(Vector3(3.2, 0.7, 1.5), Color("7a756c"), Vector3(73, 0.4, -112)))
 
 
 func _dress_aldermoor_road() -> void:
 	# Stone road east of the meadow fork, ending at a shut gate.
 	_path(70, -48, 158, -34, Color("d9d3c4"))
 	for x in [80, 100, 120, 140]:
-		add_child(Props.cylinder(0.12, 2.2, Color("f4f1ea"), Vector3(x, 1.1, -32)))
-		add_child(Props.box(Vector3(0.7, 1.1, 0.08), Color("2a4f86"), Vector3(x, 2.0, -32)))
-		add_child(Props.cylinder(0.12, 2.2, Color("f4f1ea"), Vector3(x, 1.1, -50)))
-		add_child(Props.box(Vector3(0.7, 1.1, 0.08), Color("2a4f86"), Vector3(x, 2.0, -50)))
-	# The gate itself. The city doors stay closed this chapter.
-	add_child(Props.cylinder(0.7, 4.2, Color("f7f4ee"), Vector3(156, 2.1, -48)))
-	add_child(Props.cylinder(0.7, 4.2, Color("f7f4ee"), Vector3(156, 2.1, -34)))
-	add_child(Props.box(Vector3(1.2, 3.2, 10.0), Color("e7e2d8"), Vector3(158.2, 1.6, -41)))
-	add_child(Props.box(Vector3(0.4, 1.6, 6.0), Color("c9a24a"), Vector3(157.4, 3.5, -41)))
-	add_child(Props.box(Vector3(14.0, 3.4, 1.2), Color("f4f1ea"), Vector3(162, 1.7, -30)))
-	add_child(Props.box(Vector3(14.0, 3.4, 1.2), Color("f4f1ea"), Vector3(162, 1.7, -52)))
-	add_child(Props.box(Vector3(1.0, 2.4, 8.0), Color("23406e"), Vector3(157.2, 2.6, -41)))
+		_place_design(Props.cylinder(0.16, 3.4, Color("f4f1ea"), Vector3(x, 1.7, -32)))
+		_place_design(Props.box(Vector3(1.1, 1.6, 0.08), Color("2a4f86"), Vector3(x, 3.2, -32)))
+		_place_design(Props.cylinder(0.16, 3.4, Color("f4f1ea"), Vector3(x, 1.7, -50)))
+		_place_design(Props.box(Vector3(1.1, 1.6, 0.08), Color("2a4f86"), Vector3(x, 3.2, -50)))
+	# Valley gate. The road continues through it into the outer fields. The city is not here.
+	_place_design(Props.cylinder(0.85, 6.5, Color("f7f4ee"), Vector3(156, 3.2, -50)))
+	_place_design(Props.cylinder(0.85, 6.5, Color("f7f4ee"), Vector3(156, 3.2, -32)))
+	_place_design(Props.box(Vector3(0.5, 2.2, 8.0), Color("c9a24a"), Vector3(156.4, 5.6, -41)))
+	_place_design(Props.box(Vector3(1.4, 3.6, 12.0), Color("23406e"), Vector3(156.8, 3.2, -41)))
 	var quill := ActorVisual.new()
-	quill.position = quill_pos
-	add_child(quill)
+	quill.position = Vector3(102, 0, -40)
+	_place_design(quill)
 	quill.configure("lina", "Quill")
-	quill.scale = Vector3(0.92, 0.92, 0.92)
 	var ilvane := ActorVisual.new()
-	ilvane.position = ilvane_pos
-	add_child(ilvane)
+	ilvane.position = Vector3(150, 0, -38)
+	_place_design(ilvane)
 	ilvane.configure("lina", "Ilvane")
 	_sign(Vector3(74, 0, -30), "Aldermoor", "The stone road runs east to Aldermoor, the white city. The gate is ahead. The doors are shut. Seer Ilvane waits outside.")
-	_sign(Vector3(146, 0, -30), "Gate", "Aldermoor. White stone, blue banners, a leaf over three waves. Press F to speak with Ilvane. The city itself is not open yet.")
+	_sign(Vector3(146, 0, -30), "Gate", "The valley door. The outer fields are through here. Aldermoor's walls are still a long walk east. Press F for Ilvane. She will not take the shard.")
 
 
 func _dress_margins() -> void:
@@ -653,24 +726,27 @@ func _dress_margins() -> void:
 
 
 func _tree(pos: Vector3, dark: bool) -> void:
-	add_child(Props.cylinder(0.28, 1.7, Color("5a3b28"), pos + Vector3(0, 0.85, 0)))
-	var leaf := Color("2c6240") if dark else Color("3f8f4a")
-	add_child(Props.sphere(1.15, leaf, pos + Vector3(0, 2.15, 0)))
-	var body := StaticBody3D.new()
-	body.position = pos + Vector3(0, 0.9, 0)
-	var shape := CollisionShape3D.new()
-	var cyl := CylinderShape3D.new()
-	cyl.radius = 0.55
-	cyl.height = 1.8
-	shape.shape = cyl
-	body.add_child(shape)
-	add_child(body)
+	var holder := Node3D.new()
+	holder.position = Vector3(pos.x, 0.0, pos.z)
+	var trunk := Props.cylinder(0.22, 2.4, Color("5a3b28"), Vector3(0, 1.2, 0))
+	holder.add_child(trunk)
+	for i in 3:
+		var card := MeshInstance3D.new()
+		card.mesh = canopy_quad
+		card.position = Vector3(0, 3.15, 0)
+		card.rotation.y = float(i) * PI / 3.0
+		card.material_override = canopy_dark if dark else canopy_mat
+		card.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		holder.add_child(card)
+	var body := _static_body(Vector3(0, 1.3, 0), Vector3(0.7, 2.6, 0.7))
+	holder.add_child(body)
+	_place_design(holder)
 
 
 func _jar(pos: Vector3) -> void:
 	var node := Node3D.new()
 	node.position = pos
-	add_child(node)
+	_place_design(node)
 	node.add_child(Props.cylinder(0.32, 0.62, Color("c4a574"), Vector3(0, 0.36, 0)))
 	var cork := Props.sphere(0.18, Color("6b4423"), Vector3(0, 0.74, 0))
 	cork.name = "Cork"
@@ -688,35 +764,28 @@ func _jar(pos: Vector3) -> void:
 	glow.visible = false
 	node.add_child(glow)
 	jars.append(node)
-	var body := StaticBody3D.new()
-	body.position = pos + Vector3(0, 0.35, 0)
-	var shape := CollisionShape3D.new()
-	var cyl := CylinderShape3D.new()
-	cyl.radius = 0.36
-	cyl.height = 0.7
-	shape.shape = cyl
-	body.add_child(shape)
-	add_child(body)
+	var body := _static_body(node.position + Vector3(0, 0.35, 0), Vector3(0.7, 0.7, 0.7))
+	_adopt(body, body.position)
 
 
 func _sign(pos: Vector3, short: String, full: String) -> void:
-	add_child(Props.cylinder(0.1, 1.35, Color("6b4a2e"), pos + Vector3(0, 0.68, 0)))
+	_place_design(Props.cylinder(0.1, 1.6, Color("6b4a2e"), pos + Vector3(0, 0.8, 0)))
 	var label := Label3D.new()
 	label.text = short
-	label.font_size = 32
-	label.pixel_size = 0.01
-	label.position = pos + Vector3(0, 1.7, 0)
+	label.font_size = 48
+	label.pixel_size = 0.012
+	label.position = pos + Vector3(0, 2.1, 0)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.outline_size = 8
+	label.outline_size = 10
 	label.modulate = Color("f3e2c2")
-	add_child(label)
-	signs.append({"pos": pos, "text": full})
+	_place_design(label)
+	signs.append({"pos": _w(pos.x, pos.z), "text": full})
 
 
 func _pickup(id: String, kind: String, pos: Vector3, note: String) -> void:
 	var node := Node3D.new()
 	node.position = pos
-	add_child(node)
+	_place_design(node)
 	if kind == "berry":
 		node.add_child(Props.sphere(0.22, Color("c4553a"), Vector3(0, 0.28, 0), 0.35))
 	elif kind == "sip":
@@ -749,3 +818,448 @@ func _on_pickup(body: Node, id: String) -> void:
 	var node: Node3D = pickups[id].node
 	node.visible = false
 	pickup_found.emit(str(pickups[id].kind), str(pickups[id].note))
+
+
+func _place_design(node: Node3D) -> void:
+	node.position = Vector3(node.position.x * ZONE1_SCALE, node.position.y, node.position.z * ZONE1_SCALE)
+	_adopt(node, node.position)
+
+
+func _init_foliage() -> void:
+	canopy_quad = QuadMesh.new()
+	canopy_quad.size = Vector2(6.8, 5.6)
+	grass_quad = QuadMesh.new()
+	grass_quad.size = Vector2(1.7, 1.25)
+	canopy_mat = _foliage_material(_paint_canopy(Color("6ea24a"), Color("2f6b38"), Color("d7e39a")), 80.0, 220.0)
+	canopy_dark = _foliage_material(_paint_canopy(Color("3d7a45"), Color("1e4a2c"), Color("c5d98a")), 80.0, 220.0)
+	grass_mat = _foliage_material(_paint_canopy(Color("8fb85a"), Color("4e7a32"), Color("e7efb0")), 18.0, 46.0)
+
+
+func _foliage_material(tex: Texture2D, fade_min: float, fade_max: float) -> ShaderMaterial:
+	if foliage_shader == null:
+		foliage_shader = Shader.new()
+		foliage_shader.code = "shader_type spatial;
+render_mode unshaded, cull_disabled;
+uniform sampler2D tex : filter_linear, repeat_disable;
+uniform float cutoff = 0.35;
+uniform float fade_start = 80.0;
+uniform float fade_end = 220.0;
+void fragment() {
+	vec4 col = texture(tex, UV);
+	float dist = length(VERTEX);
+	float fade = clamp((fade_end - dist) / max(fade_end - fade_start, 0.001), 0.0, 1.0);
+	if (col.a < cutoff || fade < 0.04) {
+		discard;
+	}
+	ALBEDO = col.rgb;
+}"
+	var mat := ShaderMaterial.new()
+	mat.shader = foliage_shader
+	mat.set_shader_parameter("tex", tex)
+	mat.set_shader_parameter("fade_start", fade_min)
+	mat.set_shader_parameter("fade_end", fade_max)
+	return mat
+
+
+func _paint_canopy(leaf: Color, shade: Color, tip: Color) -> ImageTexture:
+	var image := Image.create(96, 96, false, Image.FORMAT_RGBA8)
+	image.fill(Color(0, 0, 0, 0))
+	var blobs := [
+		[48, 58, 30, 26, leaf],
+		[34, 46, 18, 16, shade],
+		[62, 44, 16, 18, leaf],
+		[48, 34, 14, 12, tip],
+		[40, 68, 12, 10, shade],
+		[58, 66, 11, 9, leaf],
+	]
+	for blob in blobs:
+		_paint_blob(image, int(blob[0]), int(blob[1]), int(blob[2]), int(blob[3]), blob[4])
+	return ImageTexture.create_from_image(image)
+
+
+func _paint_blob(image: Image, cx: int, cy: int, rx: int, ry: int, color: Color) -> void:
+	for y in range(maxi(0, cy - ry), mini(image.get_height(), cy + ry)):
+		for x in range(maxi(0, cx - rx), mini(image.get_width(), cx + rx)):
+			var nx := float(x - cx) / float(rx)
+			var ny := float(y - cy) / float(ry)
+			var d := nx * nx + ny * ny
+			if d <= 1.0:
+				var edge := clampf((1.0 - d) * 2.2, 0.0, 1.0)
+				var src := image.get_pixel(x, y)
+				var out := Color(color.r, color.g, color.b, edge)
+				image.set_pixel(x, y, src.blend(out))
+
+
+func _scatter_valley() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 560
+	for i in 240:
+		var x := rng.randf_range(-54.0, 148.0)
+		var z := rng.randf_range(-158.0, 6.0)
+		if _blocks_crossing(x, z):
+			continue
+		_tree(Vector3(x, 0, z), x > 55.0)
+		if i % 2 == 0:
+			_grass(Vector3(x + rng.randf_range(-3.0, 3.0), 0, z + rng.randf_range(-2.0, 2.0)))
+	for i in 160:
+		var x := rng.randf_range(-52.0, 150.0)
+		var z := rng.randf_range(-155.0, 4.0)
+		if _blocks_crossing(x, z):
+			continue
+		_grass(Vector3(x, 0, z))
+
+
+func _blocks_crossing(x: float, z: float) -> bool:
+	if z > 10.0 and absf(x) < 24.0:
+		return true
+	if absf(x) < 8.0 and z < 14.0:
+		return true
+	if absf(z + 41.0) < 8.0 and x > -58.0:
+		return true
+	return false
+
+
+func _hedge_fan(mid: Vector3, dir: Vector3) -> void:
+	for i in 2:
+		var card := MeshInstance3D.new()
+		card.mesh = canopy_quad
+		card.scale = Vector3(0.9, 0.58, 0.9)
+		card.position = mid + dir * ((float(i) - 0.5) * 6.0) + Vector3(0, 0.9, 0)
+		card.rotation.y = atan2(dir.x, dir.z) + float(i) * 0.75
+		card.material_override = canopy_mat
+		card.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_adopt(card, card.position)
+
+
+func _paint_box(size: Vector3, color: Color, pos: Vector3) -> MeshInstance3D:
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	var node := MeshInstance3D.new()
+	node.mesh = mesh
+	node.material_override = _flat_mat(color)
+	node.position = pos
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return node
+
+
+func _grass(pos: Vector3) -> void:
+	var holder := Node3D.new()
+	holder.position = pos
+	for i in 3:
+		var card := MeshInstance3D.new()
+		card.mesh = grass_quad
+		card.position = Vector3(float(i) * 0.15, 0.4, 0)
+		card.rotation.y = float(i) * 0.8
+		card.material_override = grass_mat
+		card.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		holder.add_child(card)
+	_place_design(holder)
+
+
+func _register_outer_fields() -> void:
+	zone2_road_z = -41.0 * ZONE1_SCALE
+	zone2_start = Vector3(164.0 * ZONE1_SCALE, 0.0, zone2_road_z)
+	zone2_end = zone2_start + Vector3(ZONE2_LENGTH, 0.0, 0.0)
+	var x := zone2_start.x
+	while x < zone2_end.x + CHUNK:
+		var z := zone2_road_z - ZONE2_BREADTH * 0.5
+		var z_limit := zone2_road_z + ZONE2_BREADTH * 0.5
+		while z < z_limit:
+			var key := _chunk_key(Vector3(x, 0, z))
+			var chunk := _ensure_chunk(key, Vector3(x, 0, z))
+			chunk.zone = "fields"
+			z += CHUNK
+		x += CHUNK
+
+
+func _build_city_wall() -> void:
+	var wall_at := Vector3(zone2_end.x, 8.0, zone2_road_z)
+	add_child(_paint_box(Vector3(10.0, 16.0, 380.0), Color("f6f3ec"), wall_at))
+	add_child(_static_body(wall_at, Vector3(10.0, 16.0, 380.0)))
+	for i in range(-4, 5):
+		var banner := MeshInstance3D.new()
+		banner.mesh = canopy_quad
+		banner.position = Vector3(zone2_end.x - 6.0, 11.0, zone2_road_z + float(i) * 36.0)
+		banner.material_override = _flat_mat(Color("2a4f86"))
+		banner.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(banner)
+	add_child(_paint_box(Vector3(8.0, 8.0, 18.0), Color("23406e"), Vector3(zone2_end.x - 2.0, 5.0, zone2_road_z)))
+
+
+func _flat_mat(color: Color) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return mat
+
+
+func _build_fields_detail(chunk: Dictionary) -> void:
+	var key: Vector2i = chunk.key
+	var origin := _chunk_center(key)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(abs(key.x * 9176 + key.y * 131)) + 3
+	for i in rng.randi_range(12, 18):
+		var pos := origin + Vector3(rng.randf_range(-52, 52), 0, rng.randf_range(-52, 52))
+		if absf(pos.z - zone2_road_z) < 12.0:
+			continue
+		_tree_world(pos, rng.randf() > 0.45)
+	for i in 12:
+		var tuft := origin + Vector3(rng.randf_range(-46, 46), 0, rng.randf_range(-46, 46))
+		if absf(tuft.z - zone2_road_z) < 9.0:
+			continue
+		_grass_world(tuft)
+	if absf(origin.z - zone2_road_z) < CHUNK:
+		chunk.detail.add_child(_paint_box(Vector3(CHUNK, 0.12, 14.0), Color("cbbfa6"), Vector3(origin.x, 0.06, zone2_road_z)))
+	var briar := Vector3(zone2_start.x + 900.0, 0, zone2_road_z + 70.0)
+	if origin.distance_to(briar) < 90.0:
+		_hamlet(chunk, briar)
+	var ridge := Vector3(zone2_start.x + 1500.0, 0, zone2_road_z - 520.0)
+	if origin.distance_to(ridge) < 90.0:
+		_ridge(chunk, ridge)
+	if int(abs(key.x + key.y)) % 4 == 0 and absf(origin.z - zone2_road_z) > 40.0:
+		_spawn_field_foe(chunk, origin + Vector3(rng.randf_range(-20, 20), 0, rng.randf_range(-20, 20)))
+
+
+func _hamlet(chunk: Dictionary, at: Vector3) -> void:
+	for i in 6:
+		var spot := at + Vector3(float(i % 3) * 16.0 - 16.0, 0, float(i / 3) * 18.0)
+		var house := Props.box(Vector3(7.0, 3.2, 6.0), Color("f4f1ea"), spot + Vector3(0, 1.6, 0))
+		house.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		chunk.detail.add_child(house)
+		var solid := _static_body(spot + Vector3(0, 1.6, 0), Vector3(7.0, 3.2, 6.0))
+		chunk.detail.add_child(solid)
+		_gather_shapes(solid, chunk)
+		var roof := Props.box(Vector3(8.0, 1.4, 7.0), Color("2a4f86"), spot + Vector3(0, 3.6, 0))
+		roof.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		chunk.detail.add_child(roof)
+	var label := Label3D.new()
+	label.text = "Briarwell"
+	label.font_size = 64
+	label.pixel_size = 0.02
+	label.position = at + Vector3(0, 6.0, 0)
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	chunk.detail.add_child(label)
+	var post := Props.cylinder(0.12, 1.8, Color("6b4a2e"), at + Vector3(0, 0.9, 8))
+	chunk.detail.add_child(post)
+	signs.append({"pos": at + Vector3(0, 0, 8), "text": "Briarwell. The last roofs before Aldermoor's walls. The shard is still not for sale. Seven orbs, the seer said, and this is only the road."})
+
+
+func _ridge(chunk: Dictionary, at: Vector3) -> void:
+	chunk.detail.add_child(Props.cylinder(6.0, 2.2, Color("cfc6b4"), at + Vector3(0, 1.1, 0)))
+	chunk.detail.add_child(Props.cylinder(3.2, 3.4, Color("b7b1a4"), at + Vector3(0, 2.4, 0)))
+	var card := MeshInstance3D.new()
+	card.mesh = canopy_quad
+	card.position = at + Vector3(0, 6.5, 0)
+	card.material_override = _flat_mat(Color("2a4f86"))
+	chunk.detail.add_child(card)
+	signs.append({"pos": at, "text": "Ash Ridge. From here the valley gate is small, and the white walls are still ahead. The spirit panda is for a longer road than this one."})
+
+
+func _spawn_field_foe(chunk: Dictionary, pos: Vector3) -> void:
+	var spec := {
+		"id": "imp_%d_%d" % [int(chunk.key.x), int(chunk.key.y)],
+		"region": "fields",
+		"battle": "mite",
+		"kind": "mite",
+		"name": "Thistle Imp",
+		"scale": 1.0,
+		"special": false,
+		"at": [pos.x / ZONE1_SCALE, pos.z / ZONE1_SCALE],
+		"patrol": [
+			[pos.x / ZONE1_SCALE, pos.z / ZONE1_SCALE],
+			[(pos.x + 18.0) / ZONE1_SCALE, pos.z / ZONE1_SCALE],
+			[(pos.x + 18.0) / ZONE1_SCALE, (pos.z + 14.0) / ZONE1_SCALE],
+		],
+	}
+	_spawn_foe(spec)
+
+
+func _tree_world(pos: Vector3, dark: bool) -> void:
+	var holder := Node3D.new()
+	holder.position = pos
+	holder.add_child(Props.cylinder(0.22, 2.4, Color("5a3b28"), Vector3(0, 1.2, 0)))
+	for i in 3:
+		var card := MeshInstance3D.new()
+		card.mesh = canopy_quad
+		card.position = Vector3(0, 3.15, 0)
+		card.rotation.y = float(i) * PI / 3.0
+		card.material_override = canopy_dark if dark else canopy_mat
+		card.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		holder.add_child(card)
+	holder.add_child(_static_body(Vector3(0, 1.3, 0), Vector3(0.7, 2.6, 0.7)))
+	_adopt(holder, pos)
+
+
+func _grass_world(pos: Vector3) -> void:
+	var holder := Node3D.new()
+	holder.position = pos
+	for i in 3:
+		var card := MeshInstance3D.new()
+		card.mesh = grass_quad
+		card.position = Vector3(float(i) * 0.15, 0.4, 0)
+		card.rotation.y = float(i) * 0.8
+		card.material_override = grass_mat
+		card.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		holder.add_child(card)
+	_adopt(holder, pos)
+
+
+func _adopt(node: Node, at: Vector3) -> void:
+	var key := _chunk_key(at)
+	var chunk: Dictionary = _ensure_chunk(key, at)
+	chunk.detail.add_child(node)
+	chunk.built = true
+	_gather_shapes(node, chunk)
+
+
+func _ensure_chunk(key: Vector2i, sample: Vector3) -> Dictionary:
+	if chunks.has(key):
+		return chunks[key]
+	var root := Node3D.new()
+	root.name = "Chunk_%d_%d" % [key.x, key.y]
+	var detail := Node3D.new()
+	detail.name = "Detail"
+	detail.visible = false
+	root.add_child(detail)
+	var center := _chunk_center(key)
+	root.add_child(_paint_box(Vector3(CHUNK, 0.16, CHUNK), _biome_color(center), Vector3(center.x, -0.12, center.z)))
+	if zone2_start != Vector3.ZERO and center.x > zone2_start.x - 20.0 and absf(center.z - zone2_road_z) < CHUNK * 0.6:
+		root.add_child(_paint_box(Vector3(CHUNK, 0.08, 14.0), Color("cbbfa6"), Vector3(center.x, 0.02, zone2_road_z)))
+	var far := Node3D.new()
+	far.name = "FarFoliage"
+	for i in 3:
+		var card := MeshInstance3D.new()
+		card.mesh = canopy_quad
+		card.scale = Vector3(2.4, 2.4, 2.4)
+		card.position = center + Vector3(float(i - 1) * 28.0, 4.5, float((i % 2) * 24 - 12))
+		card.rotation.y = float(i) * 0.9
+		card.material_override = canopy_dark if center.x > zone2_start.x else canopy_mat
+		card.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		far.add_child(card)
+	root.add_child(far)
+	add_child(root)
+	var chunk := {
+		"key": key,
+		"root": root,
+		"detail": detail,
+		"far": far,
+		"awake": false,
+		"built": false,
+		"zone": "valley" if sample.x < 160.0 * ZONE1_SCALE else "fields",
+		"shapes": [],
+	}
+	chunks[key] = chunk
+	return chunk
+
+
+func _gather_shapes(node: Node, chunk: Dictionary) -> void:
+	if node is CollisionShape3D:
+		chunk.shapes.append(node)
+	for child in node.get_children():
+		_gather_shapes(child, chunk)
+
+
+func _chunk_key(at: Vector3) -> Vector2i:
+	return Vector2i(int(floor(at.x / CHUNK)), int(floor(at.z / CHUNK)))
+
+
+func _chunk_center(key: Vector2i) -> Vector3:
+	return Vector3((float(key.x) + 0.5) * CHUNK, 0.0, (float(key.y) + 0.5) * CHUNK)
+
+
+func _biome_color(world: Vector3) -> Color:
+	if zone2_start != Vector3.ZERO and world.x > zone2_start.x - 20.0:
+		return Color("7ea354") if int(floor(world.x / CHUNK) + floor(world.z / CHUNK)) % 2 == 0 else Color("6f9a4c")
+	var x := world.x / ZONE1_SCALE
+	var z := world.z / ZONE1_SCALE
+	if z > 12.0 and absf(x) < 30.0:
+		return Color("c4a06a")
+	if x > 58.0 and z < -78.0:
+		return Color("9a9488")
+	if x > 58.0:
+		return Color("3f6b46")
+	if x > 18.0 and x < 52.0 and z > -12.0 and z < 10.0:
+		return Color("7eb4cc")
+	return Color("8fb862")
+
+
+func _update_stream() -> void:
+	if hero == null:
+		return
+	var anchors: Array[Vector3] = [hero.global_position]
+	if panda_body:
+		anchors.append(panda_body.global_position)
+	for key in chunks.keys():
+		var chunk: Dictionary = chunks[key]
+		var center: Vector3 = _chunk_center(key)
+		var near := false
+		for anchor in anchors:
+			if Vector2(center.x - anchor.x, center.z - anchor.z).length() <= STREAM_RADIUS:
+				near = true
+				break
+		if near == bool(chunk.awake):
+			continue
+		_set_awake(chunk, near)
+
+
+func _set_awake(chunk: Dictionary, on: bool) -> void:
+	if on and not bool(chunk.built) and str(chunk.zone) == "fields":
+		_build_fields_detail(chunk)
+		chunk.built = true
+	var detail: Node3D = chunk.detail
+	detail.visible = on
+	var far: Node3D = chunk.far
+	far.visible = not on
+	for shape in chunk.shapes:
+		shape.disabled = not on
+	chunk.awake = on
+
+
+func is_detail_awake_near(at: Vector3) -> bool:
+	var key := _chunk_key(at)
+	if not chunks.has(key):
+		return false
+	return bool(chunks[key].awake)
+
+
+func is_chunk_awake_at_world(at: Vector3) -> bool:
+	return is_detail_awake_near(at)
+
+
+func awake_chunk_count() -> int:
+	var n := 0
+	for key in chunks.keys():
+		if bool(chunks[key].awake):
+			n += 1
+	return n
+
+
+func chunk_count() -> int:
+	return chunks.size()
+
+
+func zone1_cross_seconds() -> float:
+	var west := _w(-58.0, -41.0)
+	var east := _w(156.0, -41.0)
+	return Vector2(east.x - west.x, east.z - west.z).length() / WALK_SPEED
+
+
+func zone1_north_south_seconds() -> float:
+	var south := _w(0.0, 42.0)
+	var north := _w(0.0, -162.0)
+	return Vector2(north.x - south.x, north.z - south.z).length() / WALK_SPEED
+
+
+func zone2_cross_seconds() -> float:
+	if zone2_start == Vector3.ZERO:
+		return 0.0
+	return zone2_start.distance_to(zone2_end) / WALK_SPEED
+
+
+func zone2_breadth_seconds() -> float:
+	return ZONE2_BREADTH / WALK_SPEED
+
+
+func zone2_sample_point() -> Vector3:
+	return zone2_start + Vector3(ZONE2_LENGTH * 0.72, 0.9, 0.0)

@@ -244,7 +244,7 @@ func _build_world() -> void:
 	env.adjustment_saturation = 1.12
 	env.fog_enabled = true
 	env.fog_light_color = Color("f0d7b0")
-	env.fog_density = 0.0028
+	env.fog_density = 0.00072
 	env.fog_aerial_perspective = 0.25
 	var world_env := WorldEnvironment.new()
 	world_env.environment = env
@@ -255,7 +255,7 @@ func _build_world() -> void:
 	sun.light_color = Color("ffe2b0")
 	sun.light_energy = 1.35
 	sun.shadow_enabled = DisplayServer.get_name() != "headless"
-	sun.directional_shadow_max_distance = 90.0
+	sun.directional_shadow_max_distance = 220.0
 	add_child(sun)
 
 	camera = Camera3D.new()
@@ -349,8 +349,8 @@ func _on_npc(who: String) -> void:
 		_say([
 			"Ilvane: I am the seer. I will not take the Mystery Shard. It is not a coin.",
 			"Ilvane: There are seven cursed orbs. The shard is a whisper of one of them.",
-			"Ilvane: Keep it. The work is called Whispers of the Orb. Aldermoor studies the rest behind this gate.",
-			"Ilvane: The spirit panda can carry you when the road is open. Not through a shut door. Not today.",
+			"Ilvane: Keep it. The work is called Whispers of the Orb. This gate only opens the outer fields.",
+			"Ilvane: Aldermoor's walls are the long white line. The city doors stay shut. The spirit panda is for a road longer than today.",
 		], Callable())
 
 

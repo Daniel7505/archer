@@ -95,9 +95,24 @@ Clearing a fight gives experience. A single mite is a small fight. The lurker an
 
 If you fall, you can try the battle again, or go back to camp. Camp undoes that fight's spirit growth and puts the tea on. Winning keeps the growth.
 
+## How big it is
+
+The overworld move speed is 6.8 meters a second. Times below are for a clear run along open ground, not a straight line through hedges.
+
+The first zone is the opening wilds plus the valley gate: Bramblewick Camp, the Golden Meadow, the Lantern Grove, the Sealed Stair, and the Aldermoor road up to that gate. Crossing it the long way, east to west along the open band, or south to north from camp to the far stair wall, takes about a minute and a half to two minutes.
+
+Past the valley gate, the outer fields are the second zone. The stone road to Aldermoor's walls is a several-minute walk, a few times the first crossing, with room north and south for Briarwell and Ash Ridge. The city interior stays shut. You can see the walls.
+
+## Streaming
+
+The ground is cut into 128 meter chunks. A flat painted slab and a few big foliage cards stay up for the horizon, so the distance does not turn into a hole. Trees, grass, houses, collision, and wandering foes are only awake in the chunks around the party. In co-op that circle follows both of you. Grass cards and tree cards fade out with distance.
+
+Foliage is a collage, not a modeled forest. Each tree is a brown trunk plus three crossed cards that share one painted leaf texture. Hedges are a low green mass with a short fan of those same cards. Grass is a smaller clump of cards. Distant chunks keep three oversized cards so a woods still reads after the detail has gone to sleep. Ground tiles are flat unshaded color, like a painted board. Houses in Briarwell are simple white masses with blue roofs. The look is the warm, readable shapes of the films, kept cheap enough to repeat across both zones.
+
 ## What you can finish in this slice
 
-- Walk the wilds, then the stone road east until Aldermoor's shut gate, and hear Ilvane name Whispers of the Orb.
+- Cross the opening valley in about two minutes, then walk the outer fields for several minutes toward Aldermoor's walls.
+- Walk the wilds, then the stone road east. Ilvane at the valley gate names Whispers of the Orb. The city doors are the far white wall.
 - Walk a large camp, meadow, grove, and stair, plus Lamb Hill, Pebble Creek, the Jar Nook, and Broken Landing.
 - See foes on the map, walk around them, or touch one and fade into a clearing.
 - Fight mites, sprigs, pebbles, the lurker, and Mosswick.
